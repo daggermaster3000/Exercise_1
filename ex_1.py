@@ -10,34 +10,52 @@ import os
 from scipy.io.wavfile import read
 import GammaTones as gt
 import PySimpleGUI as sg
+from sksound.sounds import Sound
 
 
 #get parameters for the simulation
-n_electrodes = 20
-freq_lower, freq_upper = (200, 500) #Hz
-win_size = 6e-3 #s
-win_step = 5e-4 #s
+numElectrodes = 20
+Fmin, Fmax = (200, 500) #[Hz] = [1/s]
+win_size = 6e-3 #[s]
+win_step = 5e-4 #[s]
 
 #get input filename using GUI
 def get_input_file():
 
-    absolute_path = os.path.abspath(__file__)
-    dir_name = os.path.dirname(absolute_path)
-    filename = sg.popup_get_file('', no_window = True, initial_folder = dir_name+"/sounds")
+    absolutePath = os.path.abspath(__file__)
+    dirName = os.path.dirname(absolutePath)
+    filename = sg.popup_get_file('', no_window = True, initial_folder = dirName+"/sounds")
     
     rate, data = read(filename)
-    return data, rate
+    return data, rate, filename
 
-data, rate = get_input_file()
+data, rate, filename = get_input_file()
 
 #simulate
-def simulate(data, rate, n_electrodes, freq_lower, freq_upper, win_size, win_step):
-    #gamma tone process input file
-    (forward, feedback, fcs, ERB, B) = gt.GT_coefficients(rate, n_electrodes, freq_lower, freq_upper, "moore")
-    processed_data = gt.GT_apply(data, forward, feedback)
+def simulate(filename, data, rate, numElectrodes, Fmin, Fmax, win_size, win_step):
+
+    #get numChannels and remove second channel if input sound file is stereo 
+    input_sound = Sound(filename)
+    (source, rate2, numChannels, totalSamples, duration, bitsPerSample) = input_sound.get_info()
+
+    if numChannels == 2:
+        data.astype(float)
+        input = data[:, 0]
+    else:
+        input = data
+
+    #Computes the filter coefficients for a bank of GammaTone filters
+    (forward, feedback, fcs, ERB, B) = gt.GT_coefficients(rate, numElectrodes, Fmin, Fmax, "moore")
+
+    #Apply GammaTone to input file
+    processedData = gt.GT_apply(input, forward, feedback)
 
 
     #window input file
         #map the max energy to the closest electrode
 
     #output file and playback
+    return processedData
+
+x = simulate(filename, data, rate, numElectrodes, Fmin, Fmax, 0, 0)
+print(x)
