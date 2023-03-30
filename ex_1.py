@@ -55,7 +55,3 @@ def simulate(filename, data, rate, numElectrodes, Fmin, Fmax, win_size, win_step
         #map the max energy to the closest electrode
 
     #output file and playback
-    return processedData
-
-x = simulate(filename, data, rate, numElectrodes, Fmin, Fmax, 0, 0)
-print(x)
