@@ -10,45 +10,48 @@ import os
 from scipy.io.wavfile import read
 import GammaTones as gt
 import PySimpleGUI as sg
+from sksound.sounds import Sound
 
+
+#get parameters for the simulation
+numElectrodes = 20
+Fmin, Fmax = (200, 500) #[Hz] = [1/s]
+win_size = 6e-3 #[s]
+win_step = 5e-4 #[s]
 
 #get input filename using GUI
-filename = sg.popup_get_file('', no_window=True)
+def get_input_file():
 
-audioDir = 'Sounds'
-soundFile = os.path.join(audioDir, filename)
-rate, data = read(soundFile)
-print(data)
+    absolutePath = os.path.abspath(__file__)
+    dirName = os.path.dirname(absolutePath)
+    filename = sg.popup_get_file('', no_window = True, initial_folder = dirName+"/sounds")
+    
+    rate, data = read(filename)
+    return data, rate, filename
 
-#get settings for the simulation
-n_electrodes = ...
-freq_range = ...
-win_size = ...
-win_type = ...
-sample_rate = ...
+data, rate, filename = get_input_file()
 
+#simulate
+def simulate(filename, data, rate, numElectrodes, Fmin, Fmax, win_size, win_step):
 
+    #get numChannels and remove second channel if input sound file is stereo 
+    input_sound = Sound(filename)
+    (source, rate2, numChannels, totalSamples, duration, bitsPerSample) = input_sound.get_info()
 
-#gamma tone process input file
-(forward, feedback, fcs, ERB, B) = gt.GT_coefficients(rate, 50, 200, 3000, "moore")
-y = gt.GT_apply(data, forward, feedback)
+    if numChannels == 2:
+        data.astype(float)
+        input = data[:, 0]
+    else:
+        input = data
 
-# Show the plots
-fig, axs = plt.subplots(1, 2)
+    #Computes the filter coefficients for a bank of GammaTone filters
+    (forward, feedback, fcs, ERB, B) = gt.GT_coefficients(rate, numElectrodes, Fmin, Fmax, "moore")
 
-# Show all frequencies, and label a selection of centre frequencies
-gt.show_basilarmembrane_movement(y, rate, fcs, [0, 9, 19, 29, 39, 49], axs[0])
-
-# For better visibility, plot selected center-frequencies in a second plot.
-# Dont plot the centre frequencies on the ordinate.
-gt.show_basilarmembrane_movement(y[[0, 9, 19, 29, 39, 49], :], rate, [], [], axs[1])
-plt.show()
-plt.close()
+    #Apply GammaTone to input file
+    processedData = gt.GT_apply(input, forward, feedback)
 
 
+    #window input file
+        #map the max energy to the closest electrode
 
-
-#window input file
-    #map the max energy to the closest electrode
-
-#output file and playback
+    #output file and playback
