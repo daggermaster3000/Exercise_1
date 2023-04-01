@@ -21,7 +21,7 @@ def main():
     win_size = 6e-3 #[s]
     win_step = 5e-4 #[s]
     n_out_m = True
-    n = 1
+    n = 6
 
     #prompt the user for input file and extract the data, rate and filename
     data, rate, filename, input_sound = get_input_file()
@@ -53,8 +53,10 @@ def get_input_file():
     filename = sg.popup_get_file('', no_window = True, initial_folder = dirName+"/sounds")
 
     #extract rate and data from the audio file
-    rate, data = read(filename)
+    #rate, data = read(filename)
     input_sound = Sound(filename)
+    data = input_sound.data
+    rate = input_sound.rate
     
     return data, rate, filename, input_sound
 
