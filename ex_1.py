@@ -53,10 +53,8 @@ def get_input_file():
     filename = sg.popup_get_file('', no_window = True, initial_folder = dirName+"/sounds")
 
     #extract rate and data from the audio file
-    #rate, data = read(filename)
+    rate, data = read(filename)
     input_sound = Sound(filename)
-    data = input_sound.data
-    rate = input_sound.rate
     
     return data, rate, filename, input_sound
 
