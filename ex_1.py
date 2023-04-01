@@ -17,7 +17,7 @@ from sksound.sounds import Sound
 def main():
     #get parameters for the simulation
     numElectrodes = 20
-    Fmin, Fmax = (200, 500) #[Hz] = [1/s]
+    Fmin, Fmax = (200, 1500) #[Hz] = [1/s]
     win_size = 6e-3 #[s]
     win_step = 5e-4 #[s]
     n_out_m = False
@@ -34,6 +34,8 @@ def main():
 
     #play the sound
     sound_out.play()
+
+    sound_out.write_wav("out.wav")
 
 
 
@@ -98,11 +100,11 @@ def simulate(filename, data, rate, numElectrodes, Fmin, Fmax, win_size, win_step
             # Broadcasting to avoid loops
             amps = filtered_data[electrode,win_start:win_stop]
             omega = 2 * np.pi * cfs[electrode]
-            processed_data[electrode,win_start:win_stop] = amps @ np.sin(omega * t[win_start:win_stop])
+            processed_data[electrode,win_start:win_stop] = amps * np.sin(omega * t[win_start:win_stop])
         
         #finish the last points
         amps = filtered_data[electrode,win_stop:]
-        processed_data[electrode,win_stop:] = amps @ np.sin(omega * t[win_stop:])
+        processed_data[electrode,win_stop:] = amps * np.sin(omega * t[win_stop:])
 
     #Compute the sum of all electrodes to get a single audio track
 
@@ -130,7 +132,6 @@ def simulate(filename, data, rate, numElectrodes, Fmin, Fmax, win_size, win_step
 
     else:
         output_sound = np.sum(processed_data, axis=0)
-    print(output_sound)
     output_sound_object = Sound(inData=output_sound, inRate=rate)
 
     return output_sound_object
