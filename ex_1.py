@@ -20,15 +20,20 @@ def main():
     Fmin, Fmax = (200, 500) #[Hz] = [1/s]
     win_size = 6e-3 #[s]
     win_step = 5e-4 #[s]
-    n_out_m = True
+    n_out_m = False
+    n = 6
 
     #prompt the user for input file and extract the data, rate and filename
-    data, rate, filename = get_input_file()
+    data, rate, filename, input_sound = get_input_file()
+    
+    #play the input sound file
+    input_sound.play()
 
     #run the simulation and get the processed data
-    simulate(filename,data,rate,numElectrodes,Fmin,Fmax,win_size,win_step)
+    sound_out = simulate(filename,data,rate,numElectrodes,Fmin,Fmax,win_size,win_step,n_out_m,n)
 
     #play the sound
+    sound_out.play()
 
 
 
@@ -47,13 +52,14 @@ def get_input_file():
 
     #extract rate and data from the audio file
     rate, data = read(filename)
+    input_sound = Sound(filename)
     
-    return data, rate, filename
+    return data, rate, filename, input_sound
 
 
 
 #simulate
-def simulate(filename, data, rate, numElectrodes, Fmin, Fmax, win_size, win_step,n_out_m):
+def simulate(filename, data, rate, numElectrodes, Fmin, Fmax, win_size, win_step,n_out_m,n):
 
     #get numChannels and remove second channel if input sound file is stereo 
     input_sound = Sound(filename)
@@ -75,15 +81,15 @@ def simulate(filename, data, rate, numElectrodes, Fmin, Fmax, win_size, win_step
 
     #Window the filtered data
     #Get the window size and step size in terms of index
-    win_size = win_size*rate
-    win_step = win_step*rate
+    win_size = int(win_size*rate)
+    win_step = int(win_step*rate)
     win_interval = win_size+win_step
 
     #pre-allocate memory for the processed data
     processed_data = np.zeros((numElectrodes, len(data)),dtype=np.float64)
     t = np.arange(0, duration, 1/rate)
 
-    for electrode in numElectrodes:
+    for electrode in range(numElectrodes):
 
         for win_start in range(0,len(filtered_data),win_interval):
             
@@ -92,27 +98,43 @@ def simulate(filename, data, rate, numElectrodes, Fmin, Fmax, win_size, win_step
             # Broadcasting to avoid loops
             amps = filtered_data[electrode,win_start:win_stop]
             omega = 2 * np.pi * cfs[electrode]
-            processed_data[electrode,win_start:win_stop] = amps @ np.sin(omega * t)
+            processed_data[electrode,win_start:win_stop] = amps @ np.sin(omega * t[win_start:win_stop])
         
         #finish the last points
         amps = filtered_data[electrode,win_stop:]
-        processed_data[electrode,win_stop:] = amps @ np.sin(omega * t)
+        processed_data[electrode,win_stop:] = amps @ np.sin(omega * t[win_stop:])
 
+    #Compute the sum of all electrodes to get a single audio track
 
     #n out of m
     if n_out_m == True:
-
+        output_sound = np.zeros(len(data),dtype=float)
+        #get the intensities for each electrode in the given time window
         for win_start in range(0,len(filtered_data),win_interval):
+            win_stop = win_start + win_size
+            Intensities = []
             
-            if win_start>(len(filtered_data)-(win_interval)):
-                break
-
-            for electrode in numElectrodes:
-
-
+            for electrode in range(numElectrodes):
+                Intensities.append(np.square(np.sum(processed_data[electrode,win_start:win_stop])))
+            #add the n most activated electrodes to the output
+            n_elec = np.argpartition(Intensities, n)[:n]
+            output_sound[win_start:win_stop] = np.sum(processed_data[n_elec,win_start:win_stop],axis=0)
         
+        #do the same for the last points 
+        Intensities = []
+        for electrode in range(numElectrodes):
+            Intensities.append(np.square(np.sum(processed_data[electrode,win_stop:])))
+        #add the n most activated electrodes to the output
+        n_elec = np.argpartition(Intensities, n)
+        output_sound[win_stop:] = np.sum(processed_data[n_elec,win_stop:],axis=0)
 
-    #return processed data
+    else:
+        output_sound = np.sum(processed_data, axis=0)
+    print(output_sound)
+    output_sound_object = Sound(inData=output_sound, inRate=rate)
+
+    return output_sound_object
+
 
 if __name__ == "__main__":
     main()
