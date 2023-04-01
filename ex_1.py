@@ -20,7 +20,7 @@ def main():
     Fmin, Fmax = (200, 1500) #[Hz] = [1/s]
     win_size = 6e-3 #[s]
     win_step = 5e-4 #[s]
-    n_out_m = False
+    n_out_m = True
     n = 6
 
     #prompt the user for input file and extract the data, rate and filename
@@ -70,7 +70,8 @@ def simulate(filename, data, rate, numElectrodes, Fmin, Fmax, win_size, win_step
     #Check if the audio file is in stereo and keep only the first channel if this is the case (we should merge them instead)
     if numChannels == 2:
         data.astype(float)
-        input = data[:, 0]/2 + data[0,:]/2   
+        input = np.sum(data,axis=1)
+        print(np.shape(input))
     else:
         input = data
 
