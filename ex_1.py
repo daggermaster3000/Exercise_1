@@ -20,6 +20,7 @@ def main():
     Fmin, Fmax = (200, 500) #[Hz] = [1/s]
     win_size = 6e-3 #[s]
     win_step = 5e-4 #[s]
+    n_out_m = True
 
     #prompt the user for input file and extract the data, rate and filename
     data, rate, filename = get_input_file()
@@ -52,7 +53,7 @@ def get_input_file():
 
 
 #simulate
-def simulate(filename, data, rate, numElectrodes, Fmin, Fmax, win_size, win_step):
+def simulate(filename, data, rate, numElectrodes, Fmin, Fmax, win_size, win_step,n_out_m):
 
     #get numChannels and remove second channel if input sound file is stereo 
     input_sound = Sound(filename)
@@ -61,42 +62,55 @@ def simulate(filename, data, rate, numElectrodes, Fmin, Fmax, win_size, win_step
     #Check if the audio file is in stereo and keep only the first channel if this is the case (we should merge them instead)
     if numChannels == 2:
         data.astype(float)
-        input = data[:, 0]/2 + data[0,:]/2
-        
+        input = data[:, 0]/2 + data[0,:]/2   
     else:
         input = data
 
     #Computes the filter coefficients for a bank of GammaTone filters
-    (forward, feedback, fcs, ERB, B) = gt.GT_coefficients(rate, numElectrodes, Fmin, Fmax, "moore")
+    (forward, feedback, cfs, ERB, B) = gt.GT_coefficients(rate, numElectrodes, Fmin, Fmax, "moore") #cfs is the frequency at which there is an electrode
 
     #Apply GammaTone to input file
-    filtered_Data = gt.GT_apply(input, forward, feedback)
+    filtered_data = gt.GT_apply(input, forward, feedback)
 
 
     #Window the filtered data
     #Get the window size and step size in terms of index
     win_size = win_size*rate
     win_step = win_step*rate
+    win_interval = win_size+win_step
 
     #pre-allocate memory for the processed data
     processed_data = np.zeros((numElectrodes, len(data)),dtype=np.float64)
+    t = np.arange(0, duration, 1/rate)
+
     for electrode in numElectrodes:
 
-        for win_start in range(0,len(filtered_Data),win_size+win_step):
+        for win_start in range(0,len(filtered_data),win_interval):
+            
+            win_stop = win_start + win_size
 
-            #If the data cannot be distributed evenly between windows, we truncate the end of the output data
-            #not ideal as we lose some information...
-            if win_start>(len(filtered_Data)-(win_size+win_step)):
-                break
-
-            # The following construct uses "broadcasting" is a bit complex, but avoids loops
-        omega = 2 * np.pi * freqs
-        complex_tone = amps @ np.sin(omega * t)
-
-
+            # Broadcasting to avoid loops
+            amps = filtered_data[electrode,win_start:win_stop]
+            omega = 2 * np.pi * cfs[electrode]
+            processed_data[electrode,win_start:win_stop] = amps @ np.sin(omega * t)
+        
+        #finish the last points
+        amps = filtered_data[electrode,win_stop:]
+        processed_data[electrode,win_stop:] = amps @ np.sin(omega * t)
 
 
     #n out of m
+    if n_out_m == True:
+
+        for win_start in range(0,len(filtered_data),win_interval):
+            
+            if win_start>(len(filtered_data)-(win_interval)):
+                break
+
+            for electrode in numElectrodes:
+
+
+        
 
     #return processed data
 
