@@ -1,13 +1,11 @@
 """
 A python code to simulate the output of a cochlear implant...
 """
-
 #import libraries
 import os
 import numpy as np
 import PySimpleGUI as sg
 import GammaTones as gt
-from scipy.io.wavfile import read
 from sksound.sounds import Sound
 
 
@@ -19,9 +17,9 @@ def main():
 
     #get parameters for the simulation
     numElectrodes = 20 
-    Fmin, Fmax = (200, 1500) 
-    win_size = 6e-2 
-    win_step = 7e-2 
+    Fmin, Fmax = (200, 5000) 
+    win_size = 1e-2
+    win_step = 5e-3
 
     #n-out-of-m strategy (m corresponds to numElectrodes)
     n_out_m = True #if True, the strategy will be applied
@@ -49,8 +47,8 @@ def main():
 
 
 def get_input_file():
-    ''' get input filename using GUI and extracts data and rate using scipy.io.wavfile read()
-        function
+    ''' get input filename using GUI, saves it as sound class; extracts data and rate with 
+        sksound.sounds.Sound() function
     '''
 
     #Get the absolute path to this current file's location and its directory
@@ -61,9 +59,10 @@ def get_input_file():
     filename = sg.popup_get_file('', no_window = True, initial_folder = dirName+"/sounds")
 
     #extract rate and data from the audio file; save audio file as a sound class
-    rate, data = read(filename)
     inputSound = Sound(filename)
-    
+    rate = inputSound.rate
+    data = inputSound.data
+
     return data, rate, inputSound, filename
 
 
@@ -98,11 +97,12 @@ def simulate(inputSound, data, rate, numElectrodes, Fmin, Fmax, win_size, win_st
     (source, rate2, numChannels, totalSamples, duration, bitsPerSample) = inputSound.get_info()
     nData = totalSamples
 
-    #Check if the audio file is in stereo and keep only the first channel if this is the case (we should merge them instead)
+    #Check if the audio file is in stereo
+    #merge the two channels if the audio file is stereo
     if numChannels == 2:
         data.astype(float)
-        input = np.sum(data,axis=1)/2
-        print(np.shape(input))
+        input = np.sum(data, axis=1)/2
+        
     else:
         input = data
 
@@ -123,47 +123,50 @@ def simulate(inputSound, data, rate, numElectrodes, Fmin, Fmax, win_size, win_st
     processed_data = np.zeros((numElectrodes, nData), dtype = np.float64)
     t = np.arange(0, duration, 1/rate)
 
+    #start
     for electrode in range(numElectrodes):
+         
+        for i in range(0, nData + win_step, win_step):
 
-        for win_start in range(0, len(filtered_data), win_interval):
-            
-            win_stop = win_start + win_size
+            win_start = i
+            win_stop = i + win_size
+            if win_stop > 0 and win_stop < nData:
+                ft = filtered_data[electrode, win_start:win_stop]
+                stim = np.sum(np.square(ft))
+                amp = np.sqrt(stim)
+                omega = 2 * np.pi * cfs[electrode]
 
-            # Broadcasting to avoid loops
-            amps = filtered_data[electrode, win_start:win_stop]
-            omega = 2 * np.pi * cfs[electrode]
-            processed_data[electrode, win_start:win_stop] = amps * np.sin(omega * t[win_start:win_stop])
-        
-        #finish the last points
-        amps = filtered_data[electrode, win_stop:]
-        processed_data[electrode, win_stop:] = amps * np.sin(omega * t[win_stop:])
+                processed_data[electrode, win_start:win_stop] = amp * np.sin(omega * t[win_start:win_stop])
 
-    #Compute the sum of all electrodes to get a single audio track
+        #if windowing does not match enitre duration, add the last point (i.e, the last smaller window ) 
+        ft = filtered_data[electrode, win_stop:]
+        stim = np.sum(np.square(ft))
+        amp = np.sqrt(stim)
+        processed_data[electrode, win_stop:] = amp * np.sin(omega * t[win_stop:])
 
-    #n out of m
+    #n out of m strategy
     if n_out_m == True:
-        outputSound = np.zeros(nData, dtype = float)
-        #get the intensities for each electrode in the given time window
-        for win_start in range(0, len(filtered_data), win_interval):
-            win_stop = win_start + win_size
-            Intensities = []
-            
-            for electrode in range(numElectrodes):
-                Intensities.append(np.square(np.sum(processed_data[electrode, win_start:win_stop])))
-            #add the n most activated electrodes to the output
-            n_elec = np.argpartition(Intensities, n)[:n]
-            outputSound[win_start:win_stop] = np.sum(processed_data[n_elec, win_start:win_stop], axis=0)
+        outputSound = np.zeros((n, nData), dtype = np.float64) #pre-allocate memory for n-out-of-m strategy
+        for j in range(0, nData + win_step, win_step):
+                win_start = j
+                win_stop = j + win_size 
+                if win_stop > 0 and win_stop < nData:
+                    Intensities = []
+                    for electrode in range(numElectrodes):
+                        intensity = np.sum(np.square(filtered_data[electrode, win_start:win_stop]))
+                        Intensities.append([intensity, electrode])
+                    Intensities = sorted(Intensities, key=lambda x: x[0]) #sort the list for first element of sublists 
+                    topIntensities = Intensities[-n:] #list with sublists [intensity, number_electrode] for top n intensities
+
+                    for k in range(n):
+                        outputSound[k, win_start:win_stop] = processed_data[topIntensities[k][1], win_start:win_stop]
+                        outputSound[k, win_stop:] = processed_data[topIntensities[k][1], win_stop:]
         
-        #do the same for the last points 
-        Intensities = []
-        for electrode in range(numElectrodes):
-            Intensities.append(np.square(np.sum(processed_data[electrode, win_stop:])))
-        #add the n most activated electrodes to the output
-        n_elec = np.argpartition(Intensities, n)
-        outputSound[win_stop:] = np.sum(processed_data[n_elec, win_stop:], axis=0)
+        outputSound = np.sum(outputSound, axis = 0)
 
     else:
-        outputSound = np.sum(processed_data, axis=0)
+        outputSound = np.sum(processed_data, axis = 0)
+
     output_sound_object = Sound(inData = outputSound, inRate = rate)
 
     return output_sound_object
