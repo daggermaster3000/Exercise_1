@@ -75,9 +75,16 @@ alpha = q_shortest(a_IMU_start_sc,a_t0)
 # Compute the shortest rotation from the IMU's base position to 
 
 
+# add reids line rotation
 
 
 #3. Find n0, i.e. the orientation of the right SCC (semicircular canal) at t=0 
+
+# then we have the quaternion to transpose our vectors to the
+# semiconductor canals
+
+
+
 
 
 #4. Using q˜0, ⃗n0 and ⃗ω(t) sensor , calculate stim, the stimulation of the right SCC 
