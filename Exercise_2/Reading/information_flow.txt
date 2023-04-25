@@ -1,0 +1,66 @@
+Angular velocity seen by one specific canal
+===========================================
+
+In words
+--------
+The canal is fixed with respect to the head. And the sensor is also fixed with
+respect to the head. So to get the orientation of the canal, and the measured
+angular velocity, into the same coordinate system, I choose(!) the head
+orientation at t=0 as the reference.
+(The following equations should be regarded as "pseudo-code".)
+
+In equations
+------------
+n_reHead = R('y', 15) * n_measured      # Canal in head coordinates
+
+R_total = R_approx * R_short            # R_approx is the sensor on its side,
+                                    # and R_short the "q_shortest_rotation"
+                                    # that brings gravity into alignment with
+                                    # acc(t=0), converted to a rotation matrix
+
+omega_reHead = R_total * omega_reSensor # Angular velocity in head coordinates
+
+stimulus = omega_reHead * n_reHead
+
+Comments
+--------
+* This "stimulus" is the part of the 3D-angular velocity projected onto the
+semicircular canal.
+* q_short = q_shortest_rotation( ... )
+  R_short = quat_convert(q_short, 'rot_mat')
+* Since the function "q_shortest_rotation" returns the space-fixed(!)
+  quaternion describing that small rotation, it has to be performed first,
+  i.e. it has to stand to the right of "R_approx"
+
+Displacement of the cupula
+==========================
+
+In words
+--------
+In the (Lapace transformed) frequency space, the output can be obtained by
+multiplying the input with the transfer function. The required Laplace
+transformation are implemented automatically by the "lsim" function.
+Watch out: since the measured input is the angular velocity(!), we want the
+transfer function specifying the cupula displacement as a function of angular
+head velocity: delta / (s*theta) = ....
+
+In equations
+------------
+
+num = [T1*T2, 0]
+den = [T1*T2, T1+T2, 1]
+canals = tf(num, den)       # SCC transfer function
+
+displacement(time) = lsim(stimulus, canals)     # stimulus is taken from above
+
+And since this displacement is the radial(!) displacement, the displacement in
+mm is given by 
+
+displacement * r_canal, with r_canal = 3.2e-3 [m]
+
+
+Linear Acceleration
+===================
+acc_reHead = R_total * acc_reSensor
+
+acc_sensed = acc_reHead * n_otolith

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Exercise 2: Vestibular System</title>
+    <meta name="HandheldFriendly" content="True">
+    <meta name="MobileOptimized" content="320">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lato:300%7COpen+Sans:700">
+    <link rel="stylesheet" href="Resources/css/lejournal.css">
+    <!--
+    <link href="CompSens.css" rel="stylesheet">    <link href="base.css" rel="stylesheet" type="text/css">    <link href="style.css" rel="stylesheet" type="text/css">    -->
+  </head>
+  <body>
+    <div class="page">
+      <!-- ==== START PAGE HEADER ==== -->
+      <header class="masthead" role="banner">
+        <nav role="navigation">
+          <h1> <img src="Resources/CSS.png" ,="" alt="CSS" title="Computer Simulations of Sensory Systems"
+              id="CSS-icon"> Exercise 2: The Vestibular System</h1>
+          <ul id="menu">
+            <li><a href="#background">Background</a></li>
+            <li><a href="#exercise">Exercise</a></li>
+            <li><a href="#tips">Tips</a></li>
+          </ul>
+        </nav>
+      </header>
+      <!-- end page header -->
+      <div class="container">
+        <!-- ==== START MAIN CONTENT ==== -->
+        <main role="main">
+          <article>
+            <!-- ==== START BACKGROUND ==== -->
+            <section class="background">
+              <h2 id="background">Background</h2>
+              <h1><img src="Resources/canals_color_2.png" alt="Vestibular                                                                   System"
+                  title="Vestibular                                                               System"
+                  class="post-photo" style="width: 159px; height: 139px;"></h1>
+              <p>The vestibular system is a sensory system that is critically
+                important in humans for gaze and image stability as well as
+                postural control. Patients with complete bilateral vestibular
+                loss are severely disabled and experience a poor quality of
+                life. There are very few effective treatment options for
+                patients with no vestibular function. Over the last 10 years,
+                rapid progress has been made in developing artificial '<span class="highlight"
+                  style="background-color:">vestibular implants</span>' or
+                'prostheses', based on cochlear implant technology. As of 2019,
+                19 patients worldwide have received <span class="highlight" style="background-color:">vestibular
+                  implants</span> and the results are encouraging. <span class="highlight"
+                  style="background-color:">Vestibular implants</span> are now
+                becoming part of an increasing effort to develop artificial,
+                bionic sensory systems.</p>
+              <ul>
+                <li>Information about more recent progress with patients can be
+                  found in <em><a href="Reading/Guyot_CurrOpNeurol_2019.pdf">
+                      Milestones in the development of a vestibular implant.
+                      (Guyot JP, Perez Fornos A, Current Opinion in Neurology,
+                      2019)</a> </em></li>
+                <li>A good technical summary is provided by<em> <a href="Reading/Valentin_IEEE_TransNeuralSys_and_RehabEng_2013.pdf">Development
+                      of a multichannel vestibular prosthesis prototype by
+                      modification of a commercially available cochlear implant.
+                      (Valentin NS et al, IEEE Trans. Neural Systems and
+                      Rehab.Eng., 2013)</a></em></li>
+                <li>Another good description of a CMOS neural-interface chip for
+                  a multichannel vestibular prosthesis that measures head motion
+                  and modulates vestibular nerve activity to restore vision-and
+                  posture-stabilizing reﬂexes is&nbsp;<em> <a href="Reading/Hageman_VestibularProsthesis_IEEE_TransBiomedSystem_2016.pdf">A
+                      CMOS Neural Interface for a Multichannel Vestibular
+                      Prosthesis (Hageman et al, IEEE Trans. Biomed. Circuits
+                      and Systems, Vol. 20, No. 2, 2016)</a></em></li>
+                <li>Guinand, Nils et al. ,”Vestibular Implants: 8 Years of
+                  Experience with Electrical Stimulation of the Vestibular Nerve
+                  in 11 Patients with Bilateral Vestibular Loss”. <i>ORL J
+                    Otorhinolaryngol Relat Spec</i>, 77(4), 2015 Sep, p. 227-240
+                </li>
+                <li><em>... and for easy reading: a <a href="Reading/scientificamerican0410-68.pdf">Scientific
+                      American Article about vestibular intputs from Della
+                      Santina (2010)</a>.</em></li>
+                <em> </em>
+              </ul>
+              <em>
+                <!-- end background -->
+                <!-- ==== START EXERCISE ==== -->
+                <section class="exercise">
+                  <h2 id="exercise">Exercise: Simulation of a Vestibular Implant</h2>
+                  <h3>Data</h3>
+                  <p>The files&nbsp; <code>Walking_01.txt </code>and <code>Walking_02.txt</code>&nbsp;
+                    (which can be found in the folder&nbsp; <code>MovementData</code>
+                    , in&nbsp; <code><a href="Ex_Vestibular.zip" title="Archive Exercise 2: Vestibular System">Ex_Vestibular.zip</a></code>
+                    ) contain the linear accelerations and angular velocities
+                    recorded when walking in a figure-of-eight, around a table
+                    and a chair.</p>
+                  <h3>Methods</h3>
+                  <ul>
+                    <li>For measuring the movement a sensor by <a href="http://www.xsens.com/en/general/mtx"
+                        title="XSens MTx">XSens</a> was used, with the
+                      orientation on the head as indicated in the figure below.</li>
+                    <li>At the start of the recordings, the subject was
+                      stationary, and the head was in an orientation with Reid's
+                      line 15 deg nose up.</li>
+                    <li>The sensor orientation on the head is such that at t=0,
+                      the "shortest rotation that aligns the y-axis of the
+                      sensor with gravity" brings the sensor into such an
+                      orientation that the (x/ -z / y) axes of the sensor aligns
+                      with the space-fixed (x/y/z) axes. This requirement
+                      uniquely determines the sensor-orientation at t=0.</li>
+                    <li>Data were sampled at 50 Hz.</li>
+                    <li>The acceleration data are given in m/s^2, the angular
+                      velocity data in rad/s .</li>
+                  </ul>
+                  <p style="text-align: center;"><img src="Resources/Head_movements.jpg"
+                      alt="Paradigm" style="width: 278px; height: 355px;"></p>
+                  <h3 class="sidebarHeader">Task 1: Simulate the vestibular
+                    neural response</h3>
+                  <p>Simulate the neural vestibular responses during walking,
+                    using only the 3D-linear-acceleration and the
+                    3D-angular-velocity from the file <code>Walking_02.txt</code>:</p>
+                  <h4>Right horizontal semicircular canal</h4>
+                  Calculate the maximum cupular displacements (positive and
+                  negative). These two values should be written into the text
+                  file <code>CupularDisplacement.txt</code>.
+                  <h4>Otolith haircell</h4>
+                  Assume that an otolith hair-cell has at t=0 the
+                  on-direction=[0 1 0] in space fixed coordinates (i.e. pointing
+                  to the left as seen from the subject).&nbsp; Calculate the
+                  minimum and maximum acceleration along this direction, in
+                  m/s^2, and write this value to the text file <code>MaxAcceleration.txt</code>.<br>
+                  <h3 class="sidebarHeader">Task 2: Calculate the
+                    "nose-direction" during the movement</h3>
+                  <p>Calculate the orientation of the "Nose"-vector (as
+                    indicated in the figure) at the end of walking the loop
+                    (for&nbsp; <code>Walking_02.txt</code>),</p>
+                  <ul>
+                    <li>based on the angular velocity recodings, </li>
+                    <li>and assuming that at t=0: <code>nose=[1,0,0]</code> .</li>
+                  </ul>
+                  <h3 class="sidebarHeader">Input data</h3>
+                  <p>The folder <code>MovementData </code>(in <code><a href="Ex_Vestibular.zip"
+                        title="Archive Exercise 2: Vestibular System">Ex_Vestibular.zip</a></code>)
+                    contains the following files:</p>
+                  <ul>
+                    <li><code>Walking_01.txt, Walking_02.txt:</code> Linear
+                      acceleration and angular velocity recordings from human
+                      subject while walking around.</li>
+                    <li><code>SCC_Humans.m:</code> Orientations of the human
+                      semicircular canals, with respect to "Reid's plane".
+                      (Reid's plane is the plane defined by the lower rim of the
+                      orbia, and the center of the external auditory meatus. In
+                      "English": the bottom of the eyes, and the middle of the
+                      ears.)</li>
+                  </ul>
+                </section>
+                <!-- ==== START TIPS ==== -->
+                <section class="tips">
+                  <h2 id="tips">Tips</h2>
+                  <h3>Parameters and Results</h3>
+                  <ul>
+                    <li>The radius of the human semicircular canals is 3.2 mm.</li>
+                    <li>For the given input, the magnitude of the cupular
+                      displacement is about +/- 0.1 mm. </li>
+                    <li>For the given input, the magnitude of the maximum
+                      acceleration along this axis is about +/- 6 m/s^2.</li>
+                    <li>
+                      <p>The quaternions describing the head orientation are
+                        shown below:</p>
+                      <p><img src="Resources/Quaternion_HeadOrientation.png" alt="Quaternion Head Orientation"
+                          height="258" width="347"></p>
+                    </li>
+                    <li>The video&nbsp; <code><a href="Resources/myNose.avi">myNose.avi</a></code>
+                      shows the nose orientation during this walking loop:<br>
+                      <img src="Resources/orientation_viewer.png" alt="viewer" title="viewer"></li>
+                  </ul>
+                  <h3>Programming</h3>
+                  <ul>
+                    <li>For Python implementations, use the package <a href="http://work.thaslwanter.at/skinematics/html/"
+                        title="scikit-kinematics"><code>scikit-kinematics</code></a>
+                      .</li>
+                    <!-- <li>If you have difficulties finding the correct equations, -->
+                    <!--   check out the comments in <a href="Reading/information_flow.txt"><code>information_flow.txt</code></a>.</li> -->
+                  </ul>
+                  <h3>General comments</h3>
+                  <ul>
+                    <li>Name the main file <code>Ex2_Vestibular.py</code>
+                      .</li>
+                    <li>For submission of the exercises, please put all the
+                      required code-files that you have written, as well as the
+                      input- &amp; data-files that are required by your program,
+                      into one archive file. ("zip", "rar", or "7z".) Only
+                      submit that one archive-file. Name the archive <code>Ex2_[Submitters_LastNames].[zip/rar/7z]</code>.</li>
+                    <li>Please write your programs in such a way that they run,
+                      without modifications, in the folder where they are
+                      extracted to from the archive. (In other words, please
+                      write them such that I don't have to modify them to make
+                      them run on my computer.) Provide the exact command that
+                      is required to run the program in the comment.</li>
+                    <li>Please comment your programs properly: write a program
+                      header; use intelligible variable names; provide comments
+                      on what the program is supposed to be doing; give the
+                      date, version number, and name(s) of the programmer(s).</li>
+                    <li>To submit the file, go to "Ex 2: Self-Grading".</li>
+                  </ul>
+                  <!-- end tips --> </section>
+              </em></section>
+            <em> </em></article>
+          <em>
+            <!-- ==== START PAGE FOOTER ==== -->
+            <footer role="contentinfo" class="footer">
+              <p> created by Th. Haslwanter, April 23, 2023</p>
+            </footer>
+          </em></main>
+        <em>
+          <!-- end main content -->
+          <!-- ==== START SIDEBAR ==== -->
+          <div class="sidebar">
+            <aside class="links" role="complementary">
+              <h2>Interesting Links</h2>
+              <nav role="navigation">
+                <ul>
+                  <li><a href="http://en.wikibooks.org/wiki/Sensory_Systems">Wikibook
+                      Sensory Systems</a></li>
+                  <li><a href="Reading/CareyDellaSantina_2006.pdf">Good overview
+                      of vestibular system (PDF)</a></li>
+                  <li><a href="https://github.com/thomas-haslwanter/CSS_ipynb">IPYNB-files</a></li>
+                  <li><a href="http://work.thaslwanter.at/skinematics/html/" title="scikit-kinematics">scikit-kinematics
+                      (python)</a> </li>
+                  <li><a href="Ex_Vestibular.zip">ZIP-File containing all the
+                      material for today</a></li>
+                </ul>
+              </nav>
+            </aside>
+            <aside class="learned" role="complementary">
+              <h2>What you should know after this exercise</h2>
+              <ul>
+                <li>How to work with data from Inertial Measurement Units</li>
+                <li>How to handle data from 3D movements</li>
+                <li>How to interpret quaternions</li>
+                <li>How to use control systems</li>
+              </ul>
+            </aside>
+          </div>
+          <!-- end sidebar --> </em></div>
+      <em>
+        <!-- end container --> </em></div>
+    <em>
+      <!-- end page --> </em>
+  </body>
+</html>
