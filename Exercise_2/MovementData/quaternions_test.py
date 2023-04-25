@@ -11,7 +11,11 @@ g_rotated = [9.75, 0.98, -0.39]
 q_adjust = skin.vector.q_shortest_rotation(g_upright, g_rotated)
 q_upright = [0, np.sin(np.pi/4), 0]
 q_total = skin.quat.Quaternion(skin.quat.q_mult(q_upright, q_adjust))
+
+# Convert to matrices
 r_total = q_total.export('rotmat')
 q_adjust = skin.quat.Quaternion(skin.vector.q_shortest_rotation(g_upright, g_rotated))
 r_adjust = q_adjust.export('rotmat')
 print( r_adjust @ g_upright)
+
+# Alternatively we can also use skin.vector.rotate_vector(g_upright, q_adjust)
