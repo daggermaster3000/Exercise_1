@@ -19,13 +19,34 @@ approx: approximate IMU coordinates
 IMU: IMU coordinates (all measurements are in these coordinates)
 hc: head coordinates / 'world coordinates at t=0'
 rc: Reid's line coords
+
+
+TODO:
+MISC
+- adjusted means relative to the head
+- write into functions
+- loading bars for each function
+STEPS
+- 1 <done>
+- 2 <done>
+- 3 <done>
+- 4
+- 5
+- 6
+- 7 
+- 8
+- 9
+...
+
+
+
 """
 
 # Import libraries
 import numpy as np
 import skinematics as skin
 from skinematics.sensors.xsens import XSens
-import time
+import scipy.io as sio
 
 
 
@@ -34,55 +55,77 @@ import time
 
 def q_shortest(a,b):
     """
+    INPUTS
     a: a vector to be brought parralell to b
     b: a vector
-    returns: q_shortest the shortest rotation that brings a to b
+    ----------
+    returns: q_shortest, the shortest rotation that brings a to b
     """
-    n =  np.cross(a,b)/np.norm(np.cross(a,b))
-    alpha = np.arcos(np.dot(a,b)/(np.norm(a)*np.norm(b)))
+    n =  np.cross(a,b)/np.linalg.norm(np.cross(a,b))
+    alpha = np.arccos(np.dot(a,b)/(np.linalg.norm(a)*np.linalg.norm(b)))
     q_shortest = n * np.sin(alpha/2)
-    return skin.quat.quaternion(q_shortest)
+    return q_shortest
+
+def get_data_sensor(file_path):
+    """
+    INPUTS
+    file_path: the path to the file containing the sensor data
+    ----------
+    returns: Acceleration and angular velocities measured by the sensor
+    """
+    data = XSens(file_path,q_type=None)
+    return data.acc, data.omega
+
+def align_sensor_vectors():
+    ...
 
 #1. Read in the data (use only the 3D-acceleration and the 3D-angular-velocity! I expect you to calculate the orientation-quaternion yourself!) 
-# Read data
-data = XSens(in_file='Exercise_2\MovementData\Walking_01.txt',q_type=None)
-print(data.totalSamples)
-# Store accelerations from the IMU
-accelerations = data.acc
 
+# Read data from IMU
+in_file = 'Exercise_2\MovementData\Walking_01.txt'
+acc, angular_vel = get_data_sensor(in_file)
 
 #2. Find q˜0, i.e. the orientation of the IMU at t=0 re space 
 
 # Set in head coordinates the accelerations sensed by the IMU 
-a_IMU_start_hc = np.array([0,0,-9.81])
+a_IMU_start_hc = np.r_[0,0,-9.81]
 
 # Convert to sensor coordinates the "shortest rotation that aligns 
 # the y-axis of the sensor with gravity" brings the sensor into such 
 # an orientation that the (x/ -z / y) axes of the sensor aligns with the space-fixed (x/y/z) axes
-# So a 90 deg rotation around the x-axis
-q_adjust = [np.sin(np.deg2rad(90)/2), 0, 0]
-a_IMU_start_sc = skin.vector.rotate_vector(a_IMU_start_hc, q_adjust)
-print(a_IMU_start_sc)
+# So a 90 deg rotation around the x-axis"
+q_rotate = np.r_[np.sin(np.deg2rad(90)/2), 0, 0]
+a_IMU_ref_sc = np.r_[0,9.81,0]
 
 # Next we can get the data from the sensor at t=0 and compute the shortest quaternion going from this vector
 # to the sensor coordinate vectors (assuming the only acceleration at t=0 is gravity). View p.67 of 3D-Kinematics 
 # for details
-a_t0 = accelerations[0,:]
-
-alpha = q_shortest(a_IMU_start_sc,a_t0)
-
-
-# Compute the shortest rotation from the IMU's base position to 
-
-
-# add reids line rotation
+a_t0 = acc[0,:]
+q_adjust = q_shortest(a_t0,a_IMU_ref_sc)
+q_total = skin.quat.q_mult(q_rotate,q_adjust)
+# Adjust all the data
+acc_adjusted = skin.vector.rotate_vector(acc,q_total)
+angular_vel_adjusted = skin.vector.rotate_vector(angular_vel,q_total)
 
 
 #3. Find n0, i.e. the orientation of the right SCC (semicircular canal) at t=0 
+# Define the measured orientations of the SCCs relative to Reid's plane (from the IPYNBs)
 
-# then we have the quaternion to transpose our vectors to the
-# semiconductor canals
+Canals = {
+    'info': 'The matrix rows describe ' +\
+            'horizontal, anterior, and posterior canal orientation',
+    'right': np.array(
+        [[0.32269, -0.03837, -0.94573], 
+         [0.58930,  0.78839,  0.17655],
+         [0.69432, -0.66693,  0.27042]]),
+    'left': np.array(
+        [[-0.32269, -0.03837, 0.94573], 
+         [-0.58930,  0.78839,  -0.17655],
+         [-0.69432, -0.66693,  -0.27042]])}
 
+# Normalize these vectors (just a small correction):
+for side in ['right', 'left']:
+    Canals[side] = (Canals[side].T / np.sqrt(np.sum(Canals[side]**2, axis=1))).T
 
 
 
@@ -104,3 +147,4 @@ alpha = q_shortest(a_IMU_start_sc,a_t0)
 
 #9. Show the head orientation, expressed with quaternions as a function of time
 
+print('done')

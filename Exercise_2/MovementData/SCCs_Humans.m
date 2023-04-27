@@ -1,7 +1,7 @@
-%SCCs_Humans	Returns the orientation of the SCCs in humans, relative to Reid's plane
+% SCCs_Humans	Returns the orientation of the SCCs in humans, relative to Reids plane
 % Provides the orientation of the canals, according to the results of 
-% Della Santina et al,  "Orientation of Human Semicircular
-% Canals Measured by Three-Dimensional Multi-planar CT Reconstruction.".
+% Della Santina et al,  Orientation of Human Semicircular
+% Canals Measured by Three-Dimensional Multi-planar CT Reconstruction.
 % J Assoc Res Otolaryngol 6(3): 191-206. 
 %
 % The orientation of the vectors indicates the direction of stimulation of
