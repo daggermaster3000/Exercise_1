@@ -127,11 +127,13 @@ Canals = {
 for side in ['right', 'left']:
     Canals[side] = (Canals[side].T / np.sqrt(np.sum(Canals[side]**2, axis=1))).T
 
-
-
+# now we can adjust n0 to the head coordinates
+R_rot = skin.rotmat('y',15)
+Right_horizontal_SCC = Canals['right'][0]
+n0_HC = R_rot.dot(Right_horizontal_SCC.T).T
 
 #4. Using q˜0, ⃗n0 and ⃗ω(t) sensor , calculate stim, the stimulation of the right SCC 
-
+stim = angular_vel_adjusted @ n0_HC
 
 #5. Find the canal-transfer-function re velocity (not re rotation-angle!) 
 
