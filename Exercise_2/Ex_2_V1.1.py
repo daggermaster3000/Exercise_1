@@ -76,46 +76,52 @@ def get_data_sensor(file_path):
     data = XSens(file_path,q_type=None)
     return data.acc, data.omega
 
-def align_sensor_vectors(a_IC, IMU_HC, IMU_t0):
+def align_sensor_vectors(a_IMU_base_IC, a_IMU_head_HC, a_IMU_t0, acc, omegas):
     """
     Define and compute the necessary rotations to go back to head coordinates (HC) from sensor coordinates (IC) (elaborate)
     ----------
     INPUTS:
-    a_IC: The vector acting on the IMU in it's original position (IMU coordinates  (IC))
-    IMU_HC:   The vector acting on the IMU when fixed to the head (in Head coordinates (HC))
+    a_IMU_base_IC:   The vector acting on the IMU in it's original position (in IMU coordinates  (IC))
+    a_IMU_head_IC:   The vector acting on the IMU when fixed to the head (in IMU coordinates (IC))
+    a_IMU_t0:        The vector acting on the IMU at t=0
+    acc:             The data containing the accelerations
+    omegas:          The data containing the angular velocities
     ----------
-    Returns: Acceleration and angular velocities measured by the sensor
+    Returns: Acceleration and angular velocities rotated into head coordinates (elaborate)
     """
     # Convert to sensor coordinates the "shortest rotation that aligns 
     # the y-axis of the sensor with gravity" brings the sensor into such 
     # an orientation that the (x/ -z / y) axes of the sensor aligns with the space-fixed (x/y/z) axes
     # So a 90 deg rotation around the x-axis"
-    q_rotate = np.r_[np.sin(np.deg2rad(90)/2), 0, 0]
-    a_IMU_ref_sc = np.r_[0,9.81,0]
+    q_rotate = q_shortest(a_IMU_base_IC,a_IMU_head_HC)
+   
     # Next we can get the data from the sensor at t=0 and compute the shortest quaternion going from this vector
     # to the sensor coordinate vectors (assuming the only acceleration at t=0 is gravity). View p.67 of 3D-Kinematics 
     # for details
-    a_t0 = acc[0,:]
-    q_adjust = q_shortest(a_t0,a_IMU_ref_sc)
+    q_adjust = q_shortest(a_IMU_t0,a_IMU_head_IC)
     q_total = skin.quat.q_mult(q_rotate,q_adjust)
     # Adjust all the data
     acc_adjusted = skin.vector.rotate_vector(acc,q_total)
-    angular_vel_adjusted = skin.vector.rotate_vector(angular_vel,q_total)
+    omegas_adjusted = skin.vector.rotate_vector(omegas,q_total)
+
+    return acc_adjusted, omegas_adjusted
 
 
 #1. Read in the data (use only the 3D-acceleration and the 3D-angular-velocity! I expect you to calculate the orientation-quaternion yourself!) 
 
 # Read data from IMU
 in_file = 'Exercise_2\MovementData\Walking_01.txt'
-acc, angular_vel = get_data_sensor(in_file)
+acc, omega = get_data_sensor(in_file)
 
 #2. Find q˜0, i.e. the orientation of the IMU at t=0 re space 
 
 # Set in head coordinates the accelerations sensed by the IMU 
-a_IMU_start_hc = np.r_[0,0,-9.81]
+a_IMU_base_IC = np.r_[0,0,-9.81]
+a_IMU_head_IC = np.r_[0,9.81,0]
+a_IMU_t0 = acc[0,:]
 
-
-
+acc_adjusted, omegas_adjusted = align_sensor_vectors(a_IMU_base_IC,a_IMU_head_IC,a_IMU_t0,acc,omega)
+np.savetxt("accs_v2.txt",acc_adjusted)
 
 #3. Find n0, i.e. the orientation of the right SCC (semicircular canal) at t=0 
 # Define the measured orientations of the SCCs relative to Reid's plane (from the IPYNBs)
@@ -142,7 +148,7 @@ Right_horizontal_SCC = Canals['right'][0]
 n0_HC = R_rot.dot(Right_horizontal_SCC.T).T
 
 #4. Using q˜0, ⃗n0 and ⃗ω(t) sensor , calculate stim, the stimulation of the right SCC 
-stim = angular_vel_adjusted @ n0_HC
+stim = omegas_adjusted @ n0_HC
 
 #5. Find the canal-transfer-function re velocity (not re rotation-angle!) 
 
