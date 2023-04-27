@@ -115,7 +115,7 @@ acc, omega = get_data_sensor(in_file)
 
 #2. Find q˜0, i.e. the orientation of the IMU at t=0 re space 
 
-# Set in head coordinates the accelerations sensed by the IMU 
+# Set  sensed by the IMU 
 a_IMU_base_IC = np.r_[0,0,-9.81]
 a_IMU_head_IC = np.r_[0,9.81,0]
 a_IMU_t0 = acc[0,:]
@@ -124,6 +124,7 @@ acc_adjusted, omegas_adjusted = align_sensor_vectors(a_IMU_base_IC,a_IMU_head_IC
 np.savetxt("accs_v2.txt",acc_adjusted)
 
 #3. Find n0, i.e. the orientation of the right SCC (semicircular canal) at t=0 
+
 # Define the measured orientations of the SCCs relative to Reid's plane (from the IPYNBs)
 
 Canals = {
