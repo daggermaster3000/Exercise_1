@@ -55,11 +55,11 @@ import scipy.io as sio
 
 def q_shortest(a,b):
     """
-    INPUTS
+    INPUTS:
     a: a vector to be brought parralell to b
     b: a vector
     ----------
-    returns: q_shortest, the shortest rotation that brings a to b
+    Returns: q_shortest, the shortest rotation that brings a to b
     """
     n =  np.cross(a,b)/np.linalg.norm(np.cross(a,b))
     alpha = np.arccos(np.dot(a,b)/(np.linalg.norm(a)*np.linalg.norm(b)))
@@ -68,16 +68,34 @@ def q_shortest(a,b):
 
 def get_data_sensor(file_path):
     """
-    INPUTS
+    INPUTS:
     file_path: the path to the file containing the sensor data
     ----------
-    returns: Acceleration and angular velocities measured by the sensor
+    Returns: Acceleration and angular velocities measured by the sensor
     """
     data = XSens(file_path,q_type=None)
     return data.acc, data.omega
 
 def align_sensor_vectors(IMU_Base, HC_Rotation, IMU_t0):
-    ...
+    """
+    Define and compute the necessary rotations to go back to head coordinates from sensor coordinates (elaborate)
+    ----------
+    INPUTS:
+    file_path: the path to the file containing the sensor data
+    ----------
+    Returns: Acceleration and angular velocities measured by the sensor
+    """
+    a_IMU_ref_sc = np.r_[0,9.81,0]
+    # Next we can get the data from the sensor at t=0 and compute the shortest quaternion going from this vector
+    # to the sensor coordinate vectors (assuming the only acceleration at t=0 is gravity). View p.67 of 3D-Kinematics 
+    # for details
+    a_t0 = acc[0,:]
+    q_adjust = q_shortest(a_t0,a_IMU_ref_sc)
+    q_total = skin.quat.q_mult(q_rotate,q_adjust)
+    # Adjust all the data
+    acc_adjusted = skin.vector.rotate_vector(acc,q_total)
+    angular_vel_adjusted = skin.vector.rotate_vector(angular_vel,q_total)
+
 
 #1. Read in the data (use only the 3D-acceleration and the 3D-angular-velocity! I expect you to calculate the orientation-quaternion yourself!) 
 
@@ -95,17 +113,6 @@ a_IMU_start_hc = np.r_[0,0,-9.81]
 # an orientation that the (x/ -z / y) axes of the sensor aligns with the space-fixed (x/y/z) axes
 # So a 90 deg rotation around the x-axis"
 q_rotate = np.r_[np.sin(np.deg2rad(90)/2), 0, 0]
-a_IMU_ref_sc = np.r_[0,9.81,0]
-
-# Next we can get the data from the sensor at t=0 and compute the shortest quaternion going from this vector
-# to the sensor coordinate vectors (assuming the only acceleration at t=0 is gravity). View p.67 of 3D-Kinematics 
-# for details
-a_t0 = acc[0,:]
-q_adjust = q_shortest(a_t0,a_IMU_ref_sc)
-q_total = skin.quat.q_mult(q_rotate,q_adjust)
-# Adjust all the data
-acc_adjusted = skin.vector.rotate_vector(acc,q_total)
-angular_vel_adjusted = skin.vector.rotate_vector(angular_vel,q_total)
 
 
 #3. Find n0, i.e. the orientation of the right SCC (semicircular canal) at t=0 
