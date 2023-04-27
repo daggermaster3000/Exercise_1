@@ -59,7 +59,7 @@ def q_shortest(a,b):
     a: a vector to be brought parralell to b
     b: a vector
     ----------
-    Returns: q_shortest, the shortest rotation that brings a to b
+    Returns: q_shortest, the shortest rotation (quaternion) that brings a to b
     """
     n =  np.cross(a,b)/np.linalg.norm(np.cross(a,b))
     alpha = np.arccos(np.dot(a,b)/(np.linalg.norm(a)*np.linalg.norm(b)))
@@ -76,15 +76,21 @@ def get_data_sensor(file_path):
     data = XSens(file_path,q_type=None)
     return data.acc, data.omega
 
-def align_sensor_vectors(IMU_Base, HC_Rotation, IMU_t0):
+def align_sensor_vectors(a_IC, IMU_HC, IMU_t0):
     """
-    Define and compute the necessary rotations to go back to head coordinates from sensor coordinates (elaborate)
+    Define and compute the necessary rotations to go back to head coordinates (HC) from sensor coordinates (IC) (elaborate)
     ----------
     INPUTS:
-    file_path: the path to the file containing the sensor data
+    a_IC: The vector acting on the IMU in it's original position (IMU coordinates  (IC))
+    IMU_HC:   The vector acting on the IMU when fixed to the head (in Head coordinates (HC))
     ----------
     Returns: Acceleration and angular velocities measured by the sensor
     """
+    # Convert to sensor coordinates the "shortest rotation that aligns 
+    # the y-axis of the sensor with gravity" brings the sensor into such 
+    # an orientation that the (x/ -z / y) axes of the sensor aligns with the space-fixed (x/y/z) axes
+    # So a 90 deg rotation around the x-axis"
+    q_rotate = np.r_[np.sin(np.deg2rad(90)/2), 0, 0]
     a_IMU_ref_sc = np.r_[0,9.81,0]
     # Next we can get the data from the sensor at t=0 and compute the shortest quaternion going from this vector
     # to the sensor coordinate vectors (assuming the only acceleration at t=0 is gravity). View p.67 of 3D-Kinematics 
@@ -108,11 +114,7 @@ acc, angular_vel = get_data_sensor(in_file)
 # Set in head coordinates the accelerations sensed by the IMU 
 a_IMU_start_hc = np.r_[0,0,-9.81]
 
-# Convert to sensor coordinates the "shortest rotation that aligns 
-# the y-axis of the sensor with gravity" brings the sensor into such 
-# an orientation that the (x/ -z / y) axes of the sensor aligns with the space-fixed (x/y/z) axes
-# So a 90 deg rotation around the x-axis"
-q_rotate = np.r_[np.sin(np.deg2rad(90)/2), 0, 0]
+
 
 
 #3. Find n0, i.e. the orientation of the right SCC (semicircular canal) at t=0 
