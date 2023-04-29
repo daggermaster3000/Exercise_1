@@ -51,6 +51,7 @@ def main():
     np.savetxt("updated_angular_them.txt",updated_angular_velocity)
     deflection = get_cupular_displacement(updated_angular_velocity)
     print('Cupular deflection', deflection)
+    
     np.savetxt("CupularDisplacement.txt",deflection,fmt='%10.5f')
 
     # minimum and maximum acceleration
@@ -134,6 +135,8 @@ def get_cupular_displacement(gyrodata):
     # cupula deflection
     _, outSignal, _ = sig.lsim(system,stimulation, t)
     deflection = outSignal * radius_canal
+    plt.plot(deflection)
+    plt.show()
     min_deflection = np.min(deflection) # mm
     max_deflection = np.max(deflection) # mm
     deflection = np.array([min_deflection, max_deflection])

@@ -2,7 +2,7 @@
 """
 Exercise: Simulation of a Vestibular Implant
 Authors: Quillan Favey, Alessandro Pasini
-Version: 1.0
+Version: 1.1
 Date: 25.04.2023
 
 This file contains code for simulating the output of a 
@@ -11,11 +11,10 @@ vestibular implant using data from an IMU.
 
 Naming convention in this file: 
 
-Rotation matricies start with R
+Rotation matrices start with R
 quaternions start with q
 R_a_b is rotation from coordinates a to coordinates b
 name_a is a vector in coordinates a
-approx: approximate IMU coordinates
 IMU: IMU coordinates (all measurements are in these coordinates)
 hc: head coordinates / 'world coordinates at t=0'
 rc: Reid's line coords
@@ -48,9 +47,44 @@ import skinematics as skin
 from skinematics.sensors.xsens import XSens
 import scipy.io as sio
 from scipy import signal
-
+import matplotlib.pyplot as plt
+import time
+import sys
+import threading
+import itertools
 
 # Functions
+
+def running_decorator(func):
+    def wrapper(*args, **kwargs):
+        msg = f"Running {func.__name__}..."
+        print(msg, end="\r\t\t\t\t\t")
+        sys.stdout.flush()
+        event = threading.Event()
+        loading_thread = threading.Thread(target=print_loading_message, args=(event,msg))
+        
+        loading_thread.start()
+        
+        result = func(*args, **kwargs)
+        
+        event.set()
+
+        loading_thread.join()
+        
+
+        return result
+
+    def print_loading_message(event,msg):
+        for char in itertools.cycle("|/-\\"):
+            if event.is_set():
+                print("Done.")
+                break
+            print(char, end="\r\t\t\t\t\t")
+            sys.stdout.flush()
+            
+
+    return wrapper
+
 
 def q_shortest(a, b):
     """
@@ -65,7 +99,7 @@ def q_shortest(a, b):
     q_shortest = n * np.sin(alpha/2)
     return q_shortest
 
-
+@running_decorator
 def get_data_sensor(file_path):
     """
     INPUTS:
@@ -76,7 +110,7 @@ def get_data_sensor(file_path):
     data = XSens(file_path, q_type=None)
     return data.acc, data.omega
 
-
+@running_decorator
 def align_sensor_vectors(a_IMU_base_IC, a_IMU_head_HC, a_IMU_t0, acc, omegas):
     """
     Define and compute the necessary rotations to go back to head coordinates (HC) from sensor coordinates (IC) (elaborate)
@@ -107,7 +141,7 @@ def align_sensor_vectors(a_IMU_base_IC, a_IMU_head_HC, a_IMU_t0, acc, omegas):
 
     return acc_adjusted, omegas_adjusted
 
-
+@running_decorator
 def get_cupular_deflections(num, den, t, stim):
     """
     Compute the cupula deflections from stimulation data according to the transfer function.
@@ -120,13 +154,18 @@ def get_cupular_deflections(num, den, t, stim):
     ----------
     Returns: An array containing the cupular deflections as a function of time
     """
+    time.sleep(10)
     tf_canals = signal.lti(num, den)  # Create transfer function
 
     # 6. Using stim and the canal-transfer-function, calculate the cupula deflection
     # Simulate and return cupular deflections
     t_out_cupular, cupular_deflection, state_vector = signal.lsim(
-        tf_canals, stim)  # state vector is no needed
+        tf_canals, stim, t)  # state vector is no needed
     return cupular_deflection
+
+
+
+
 
 # 1. Read in the data (use only the 3D-acceleration and the 3D-angular-velocity! I expect you to calculate the orientation-quaternion yourself!)
 
@@ -168,7 +207,7 @@ for side in ['right', 'left']:
                     np.sqrt(np.sum(Canals[side]**2, axis=1))).T
 
 # now we can adjust n0 to the head coordinates
-R_rot = skin.rotmat('y', 15)
+R_rot = skin.rotmat.R('y', 15)
 Right_horizontal_SCC = Canals['right'][0]
 n0_HC = R_rot.dot(Right_horizontal_SCC.T).T
 
@@ -187,13 +226,14 @@ cupula_defl = get_cupular_deflections(num, den, t, stim)    # simulate and get c
 # convert to mm
 r_canal = 3.2
 cupula_defl = cupula_defl*r_canal
-
 np.savetxt("Cupula_deflections.txt", [
-           np.min(cupula_defl), np.max(cupula_defl)])   # save to .txt file
+           np.min(cupula_defl), np.max(cupula_defl)],fmt='%10.5f')   # save to .txt file
 
 
 # 7. Using q˜0 and ⃗ω(t) sensor , calculate q˜(t), i.e. the head orientation re space during the movement
+#acc_reHead = R_total * acc_reSensor
 
+#acc_sensed = acc_reHead * n_otolith
 
 # 8. Calculate the stimulation of the otolith hair cell
 
