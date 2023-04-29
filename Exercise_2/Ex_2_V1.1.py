@@ -24,7 +24,7 @@ TODO:
 MISC
 - adjusted means relative to the head
 - write as functions
-- loading bars for each function
+- loading wheels for each function <done> (sort of doesnt work yet on conda prompt)
 STEPS
 - 1 <done>
 - 2 <done>
@@ -32,21 +32,21 @@ STEPS
 - 4 <done>
 - 5 <done>
 - 6 <done>
-- 7 
-- 8
-- 9
+- 7 head orientation in space
+- 8 otolith hair cell simulation
+- 9 show head orientation with quaternions over time
 ...
-
-
 
 """
 
-# Import libraries
-import numpy as np
-import skinematics as skin
+# Import libraries import only the functions we need for faster loading
+
 from skinematics.sensors.xsens import XSens
-import scipy.io as sio
+from skinematics.quat import q_mult
+from skinematics.vector import rotate_vector
+from skinematics.rotmat import R as rotmat
 from scipy import signal
+import numpy as np
 import matplotlib.pyplot as plt
 import time
 import sys
@@ -80,6 +80,7 @@ def running_decorator(func):
                 print("Done.")
                 break
             print(char, end="\r\t\t\t\t\t")
+            time.sleep(0.1)
             sys.stdout.flush()
             
 
@@ -101,6 +102,7 @@ def q_shortest(a, b):
 
 @running_decorator
 def get_data_sensor(file_path):
+    
     """
     INPUTS:
     file_path: the path to the file containing the sensor data
@@ -129,15 +131,15 @@ def align_sensor_vectors(a_IMU_base_IC, a_IMU_head_HC, a_IMU_t0, acc, omegas):
     # an orientation that the (x/ -z / y) axes of the sensor aligns with the space-fixed (x/y/z) axes
     # So a 90 deg rotation around the x-axis"
     q_rotate = q_shortest(a_IMU_base_IC, a_IMU_head_HC)
-
+    
     # Next we can get the data from the sensor at t=0 and compute the shortest quaternion going from this vector
     # to the sensor coordinate vectors (assuming the only acceleration at t=0 is gravity). View p.67 of 3D-Kinematics
     # for details
     q_adjust = q_shortest(a_IMU_t0, a_IMU_head_IC)
-    q_total = skin.quat.q_mult(q_rotate, q_adjust)
+    q_total = q_mult(q_rotate, q_adjust)
     # Adjust all the data
-    acc_adjusted = skin.vector.rotate_vector(acc, q_total)
-    omegas_adjusted = skin.vector.rotate_vector(omegas, q_total)
+    acc_adjusted = rotate_vector(acc, q_total)
+    omegas_adjusted = rotate_vector(omegas, q_total)
 
     return acc_adjusted, omegas_adjusted
 
@@ -154,7 +156,7 @@ def get_cupular_deflections(num, den, t, stim):
     ----------
     Returns: An array containing the cupular deflections as a function of time
     """
-    time.sleep(10)
+    
     tf_canals = signal.lti(num, den)  # Create transfer function
 
     # 6. Using stim and the canal-transfer-function, calculate the cupula deflection
@@ -207,7 +209,7 @@ for side in ['right', 'left']:
                     np.sqrt(np.sum(Canals[side]**2, axis=1))).T
 
 # now we can adjust n0 to the head coordinates
-R_rot = skin.rotmat.R('y', 15)
+R_rot = rotmat('y', 15)
 Right_horizontal_SCC = Canals['right'][0]
 n0_HC = R_rot.dot(Right_horizontal_SCC.T).T
 
