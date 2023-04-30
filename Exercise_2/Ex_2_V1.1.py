@@ -141,7 +141,7 @@ def align_sensor_vectors(a_IMU_base_IC, a_IMU_head_HC, a_IMU_t0, acc, omegas):
     acc_adjusted = rotate_vector(acc, q_total)
     omegas_adjusted = rotate_vector(omegas, q_total)
 
-    return acc_adjusted, omegas_adjusted
+    return acc_adjusted, omegas_adjusted, q_total
 
 @running_decorator
 def get_cupular_deflections(num, den, t, stim):
@@ -166,7 +166,37 @@ def get_cupular_deflections(num, den, t, stim):
     return cupular_deflection
 
 
+def calculate_head_orientation(adjusted_omegas,q_0):
+    """
+    Calculate the head orientation re space during the movement
+    ----------
+    INPUTS:
+    adjusted_omegas:    The adjusted angular velocities 
+    q_0:                The quaternion that brings the IMU from base position to position at t=0    
+    ----------
+    Returns: An array containing the head orientation as function a of time
+    """
 
+def stim_otolith():
+    """
+    Simulate otoliths hair cells stimulation
+    ----------
+    INPUTS:
+    ...
+    ----------
+    Returns: An array containing the otoliths stimulation as a function of time
+    """
+
+def show_head_orientation(path):
+    """
+    Creates a .avi file playing the nose orientation as a function of time or maybe 
+    a .js file that will be opened in the browser
+    ----------
+    INPUTS:
+    ...
+    ----------
+    Returns: Void
+    """
 
 
 # 1. Read in the data (use only the 3D-acceleration and the 3D-angular-velocity! I expect you to calculate the orientation-quaternion yourself!)
@@ -178,12 +208,12 @@ acc, omega = get_data_sensor(in_file)
 
 # 2. Find q˜0, i.e. the orientation of the IMU at t=0 re space
 
-# Set  sensed by the IMU
+# Set accelerations sensed by the IMU
 a_IMU_base_IC = np.r_[0, 0, -9.81]
 a_IMU_head_IC = np.r_[0, 9.81, 0]
 a_IMU_t0 = acc[0, :]
 
-acc_adjusted, omegas_adjusted = align_sensor_vectors(
+acc_adjusted, omegas_adjusted, q_0 = align_sensor_vectors(
     a_IMU_base_IC, a_IMU_head_IC, a_IMU_t0, acc, omega)
 # np.savetxt("accs_v2.txt",acc_adjusted)
 
