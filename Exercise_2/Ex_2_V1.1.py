@@ -57,6 +57,9 @@ import itertools
 import os
 import webbrowser
 
+
+
+
 # Main function
 
 def main():
@@ -126,6 +129,7 @@ def main():
 
     # 7. Using q˜0 and ⃗ω(t) sensor , calculate q˜(t), i.e. the head orientation re space during the movement
     head_orientation_v, head_orientation_q = calculate_head_orientation(omegas_adjusted)
+    
 
     # 8. Calculate the stimulation of the otolith hair cell
     stim_otolith = stim_otolith_left(acc_adjusted)
@@ -254,7 +258,7 @@ def get_cupular_deflections(num, den, t, stim):
         tf_canals, stim, t)  # state vector is no needed
     return cupular_deflection
 
-@running_decorator
+
 def calculate_head_orientation(adjusted_omegas,nose_init=np.r_[1,0,0]):
     """
     Calculate the head/nose orientation re space during the movement
@@ -313,13 +317,21 @@ def show_head_orientation(path,head_orientation_q,head_orientation_v,t):
     plt.plot(t,head_orientation_q[:,1:4])
     plt.title("Vector components of the quaternions vs time")
     plt.xlabel("Time [s]")
-    plt.show()
+    #plt.show()
 
     # Animation stuff
+    js_array = f""
+    for i in head_orientation_v:
+        pos = f""
+        for j in i:
+            pos=pos+f"{j},"
+        js_array = js_array + f"[{pos[0:-1]}], "
+    js_array = js_array[0:-2]
+
     create_html()
-    create_js()
+    create_js(js_array)
     # Open the HTML file in the default web browser
-    webbrowser.open('Exercise_2\\Outputs\\index.html')
+    webbrowser.open('http:\\127.0.0.1:5500\\Exercise_2\\Outputs\\index.html')
 
 # Animation functions
 def create_html():
@@ -334,61 +346,97 @@ def create_html():
             margin: 0;
             overflow: hidden;
         }}
+        #info {{
+	position: absolute;
+	top: 10px;
+	width: 100%;
+	text-align: center;
+	z-index: 100;
+	display:block;
+}}
         </style>
     </head>
     <body>
-        <script src="https://threejs.org/build/three.min.js"></script>
-        <script src="Exercise_2/Outputs/animate.js"></script>
+        <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script> <script type="importmap"> {{ "imports": {{ "three": "https://unpkg.com/three@v0.149.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@v0.149.0/examples/jsm/" }} }} </script>
+        <script type="module" src="animate.js"></script>
+        <div id="info">
+            <H1>Orientation of the nose during the walk</H1>
+            Click and drag to rotate
+            <br>
+            <p><span style="color:#ff0000">X-axis</span>, <span style="color:#00ff00">Y-axis</span>, <span style="color:#0000ff">Z-axis</span>,<span style="color:#00ffff">Nose</span></p>
+            <button onClick="window.location.reload();">Replay</button>
+        </div>
+        
     </body>
     </html>
+    
     """
 
     # Write the HTML file to disk
     with open('Exercise_2\Outputs\index.html', 'w') as f:
         f.write(html_content)
 
-def create_js():
-    js_content = r"""
-    // Create a scene
-    const scene = new THREE.Scene();
+def create_js(js_array):
+    js_content = f"""
+    
 
-    // Create a camera
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 5;
+    
+import * as THREE from 'three';
+import {{ OrbitControls }} from 'three/addons/controls/OrbitControls.js';
 
-    // Create a renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+// Create a renderer
+var renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
 
-    // Create an arrow geometry
-    const arrowGeometry = new THREE.Geometry();
-    arrowGeometry.vertices.push(new THREE.Vector3(0, 0, 0));
-    arrowGeometry.vertices.push(new THREE.Vector3(0, 1, 0));
-    arrowGeometry.vertices.push(new THREE.Vector3(0.2, 0.8, 0));
-    arrowGeometry.vertices.push(new THREE.Vector3(0, 0.7, 0));
-    arrowGeometry.vertices.push(new THREE.Vector3(-0.2, 0.8, 0));
-    arrowGeometry.vertices.push(new THREE.Vector3(0, 1, 0));
-    arrowGeometry.faces.push(new THREE.Face3(0, 1, 2));
-    arrowGeometry.faces.push(new THREE.Face3(0, 3, 2));
-    arrowGeometry.faces.push(new THREE.Face3(0, 4, 2));
-    arrowGeometry.computeBoundingSphere();
+// Add the renderer to the HTML document
+document.body.appendChild(renderer.domElement);
 
-    // Create a material for the arrow
-    const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+// Create a camera
+var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+const controls = new OrbitControls(camera, renderer.domElement);
+camera.position.z = 5;
+camera.position.y = 3;
+camera.position.x = 1
+controls.target = new THREE.Vector3(0, 0, 0)
+controls.update();
 
-    // Create an arrow mesh
-    const arrowMesh = new THREE.Mesh(arrowGeometry, arrowMaterial);
-    scene.add(arrowMesh);
+// Create a scene
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0xffffff)
 
-    // Animate the arrow
-    function animate() {
-    requestAnimationFrame(animate);
-    arrowMesh.rotation.z += 0.1;
+// Create two arrows with different colors
+var x = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 1, 0xff0000);
+var y = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0), 1, 0x00ff00);
+var z = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 1, 0x0000ff);
+
+// Add the arrows to the scene
+scene.add(x);
+scene.add(y);
+scene.add(z)
+
+// Render the scene
+renderer.render(scene, camera);
+
+//animate the scene
+const fps = 50;
+let positions = [{js_array}]
+
+let i = 0;
+console.log(positions[1][0])
+function animate() {{
+    var nose = new THREE.ArrowHelper(new THREE.Vector3(positions[i][0],positions[i][2],positions[i][1]), new THREE.Vector3(0, 0, 0), 1, 0x00ffff);
+    scene.add(nose)
+    //x.rotation.y += 0.01;
     renderer.render(scene, camera);
-    }
+    i = i + 1;
+    setTimeout(() => {{
+        requestAnimationFrame(animate);
 
-    animate();
+    }}, 1000 / fps);
+    scene.remove(nose)
+}}
+animate();
+    
     """
 
     with open('Exercise_2\\Outputs\\animate.js', 'w') as f:

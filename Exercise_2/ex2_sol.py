@@ -48,7 +48,7 @@ def main():
     # maximum cupular displacements
     updated_angular_velocity = align_to_sensor(
         angular_velocity,sensor_reference,ideal_gravity)
-    np.savetxt("updated_angular_them.txt",updated_angular_velocity)
+    #np.savetxt("updated_angular_them.txt",updated_angular_velocity)
     deflection = get_cupular_displacement(updated_angular_velocity)
     print('Cupular deflection', deflection)
     
@@ -57,17 +57,19 @@ def main():
     # minimum and maximum acceleration
     updated_acceleration_data = align_to_sensor(
         acceleration,sensor_reference,ideal_gravity)
-    np.savetxt("updated_acc_them.txt",updated_acceleration_data)
+    #np.savetxt("updated_acc_them.txt",updated_acceleration_data)
     acceleration = get_otolith_stimulation(updated_acceleration_data)
     print('Acceleration', acceleration)
-    np.savetxt("MaxAcceleration.txt",acceleration,fmt='%10.5f')
+    #np.savetxt("MaxAcceleration.txt",acceleration,fmt='%10.5f')
 
     # get head and nose direction during the walk
     head, nose = get_nose_orientation(updated_angular_velocity)
     print('Final nose orientation', nose[-1])
-    np.savetxt("FinalNose.txt",nose[-1],fmt='%10.5f')
+    #np.savetxt("FinalNose.txt",nose[-1],fmt='%10.5f')
 
     # plot head orientation
+    
+
     t = np.arange(0,len(angular_velocity))/50
     plt.plot(t, head[:,1:4])
     plt.xlabel('Time [s]')
@@ -75,7 +77,14 @@ def main():
     plt.savefig('HeadOrientation')
 
     # visualize nose direction during walking
+    
+    for i in nose:
+        x = f""
+        for j in i:
+            x=x+f"{j},"
+        print(f"[{x[0:-1]}], ",end=" ")
     visualize(nose)
+
 
 def get_sensor_data(file):
     """
