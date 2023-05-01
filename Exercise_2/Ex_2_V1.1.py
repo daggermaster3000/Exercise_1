@@ -25,7 +25,8 @@ MISC
 - adjusted means relative to the head <done>
 - write as functions <done>
 - loading wheels for each function <done> (sort of doesnt work yet on conda prompt)
-- 3D animation <done>
+- 3D animation 
+- Propre
 STEPS
 - 1 <done>
 - 2 <done>
