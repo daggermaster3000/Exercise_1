@@ -25,8 +25,9 @@ MISC
 - adjusted means relative to the head <done>
 - write as functions <done>
 - loading wheels for each function <done> (sort of doesnt work yet on conda prompt)
-- 3D animation 
+- 3D animation <done>
 - Propre
+- Add a thread for the live server
 STEPS
 - 1 <done>
 - 2 <done>
@@ -56,6 +57,8 @@ import threading
 import itertools
 import os
 import webbrowser
+import http.server
+import socketserver
 
 
 
@@ -330,8 +333,19 @@ def show_head_orientation(path,head_orientation_q,head_orientation_v,t):
 
     create_html()
     create_js(js_array)
-    # Open the HTML file in the default web browser
-    webbrowser.open('http:\\127.0.0.1:5500\\Exercise_2\\Outputs\\index.html')
+
+    # Start live server and Open the HTML file in the default web browser
+
+    PORT = 8000
+
+    Handler = http.server.SimpleHTTPRequestHandler
+    webbrowser.open('http:\\127.0.0.1:8000\\Exercise_2\\Outputs\\index.html')
+
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        print("\nserving at port", PORT,end="\r")
+        httpd.serve_forever()
+
+   
 
 # Animation functions
 def create_html():
