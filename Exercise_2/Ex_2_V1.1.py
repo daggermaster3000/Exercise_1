@@ -354,7 +354,7 @@ def create_html():
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Three.js Arrow Animation</title>
+        <title>Viewer</title>
         <style>
         body {{
             margin: 0;
@@ -368,21 +368,27 @@ def create_html():
 	z-index: 100;
 	display:block;
 }}
+h1,p,button{{
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif
+}}
+
+
         </style>
     </head>
     <body>
         <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script> <script type="importmap"> {{ "imports": {{ "three": "https://unpkg.com/three@v0.149.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@v0.149.0/examples/jsm/" }} }} </script>
-        <script type="module" src="animate.js"></script>
+        <script type="module" src="Main.js"></script>
         <div id="info">
-            <H1>Orientation of the nose during the walk</H1>
-            Click and drag to rotate
-            <br>
-            <p><span style="color:#ff0000">X-axis</span>, <span style="color:#00ff00">Y-axis</span>, <span style="color:#0000ff">Z-axis</span>,<span style="color:#00ffff">Nose</span></p>
+            <h1>Nose orientation during infinity walk</h1>
+            <p>Click and drag to rotate</p>
+            <p><span style="color:#ff0000">X-axis</span>, <span style="color:#00ff00">Y-axis</span>, <span style="color:#0000ff">Z-axis</span>,<span style="color:#00ffff"> Nose</span></p>
             <button onClick="window.location.reload();">Replay</button>
         </div>
-        
+
     </body>
     </html>
+    
+    
     
     """
 
@@ -392,15 +398,15 @@ def create_html():
 
 def create_js(js_array):
     js_content = f"""
-    
-
-    
 import * as THREE from 'three';
 import {{ OrbitControls }} from 'three/addons/controls/OrbitControls.js';
+import {{ GLTFLoader }} from 'three/addons/loaders/GLTFLoader.js';
+import {{ DRACOLoader }} from 'three/addons/loaders/DRACOLoader.js';
 
 // Create a renderer
 var renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 // Add the renderer to the HTML document
 document.body.appendChild(renderer.domElement);
@@ -414,9 +420,45 @@ camera.position.x = 1
 controls.target = new THREE.Vector3(0, 0, 0)
 controls.update();
 
+// create material
+const format = ( renderer.capabilities.isWebGL2 ) ? THREE.RedFormat : THREE.LuminanceFormat;
+
+
+  const colors = new Uint8Array( 0 + 2 );
+
+  for ( let c = 0; c <= colors.length; c ++ ) {{
+
+    colors[ c ] = ( c / colors.length ) * 256;
+
+  }}
+
+  const gradientMap = new THREE.DataTexture( colors, colors.length, 1, format );
+  gradientMap.needsUpdate = true;
+
+const PinkMaterial = new THREE.MeshToonMaterial({{
+  color: 'pink',
+}});
+
+
+// loader
+
+
+    
+
+
 // Create a scene
 var scene = new THREE.Scene();
 scene.background = new THREE.Color(0xffffff)
+
+
+
+// a light is required for MeshPhongMaterial to be seen
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
+directionalLight.position.z = 3
+directionalLight.position.x = 1
+directionalLight.position.y = 3
+scene.add(directionalLight)
+
 
 // Create two arrows with different colors
 var x = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 1, 0xff0000);
@@ -426,7 +468,8 @@ var z = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0
 // Add the arrows to the scene
 scene.add(x);
 scene.add(y);
-scene.add(z)
+scene.add(z);
+
 
 // Render the scene
 renderer.render(scene, camera);
@@ -436,11 +479,25 @@ const fps = 50;
 let positions = [{js_array}]
 
 let i = 0;
-console.log(positions[1][0])
+
+const gltfLoader = new GLTFLoader();
+gltfLoader.load('scene.gltf', function(gltf) {{
+  gltf.scene.traverse(function(child) {{
+    if (child instanceof THREE.Mesh) {{
+      child.material = PinkMaterial;
+    }}
+  }});
+  const object = gltf.scene;
+  object.position.set(0, -0.19, 0);
+  scene.add(gltf.scene);
+
+
+
 function animate() {{
     var nose = new THREE.ArrowHelper(new THREE.Vector3(positions[i][0],positions[i][2],positions[i][1]), new THREE.Vector3(0, 0, 0), 1, 0x00ffff);
     scene.add(nose)
-    //x.rotation.y += 0.01;
+    object.lookAt(new THREE.Vector3(positions[i][0],positions[i][2]-0.2,positions[i][1]));
+    
     renderer.render(scene, camera);
     i = i + 1;
     setTimeout(() => {{
@@ -451,9 +508,11 @@ function animate() {{
 }}
 animate();
     
+}});      
+    
     """
 
-    with open('Exercise_2\\Outputs\\animate.js', 'w') as f:
+    with open('Exercise_2\\Outputs\\Main.js', 'w') as f:
         f.write(js_content)
 
 
