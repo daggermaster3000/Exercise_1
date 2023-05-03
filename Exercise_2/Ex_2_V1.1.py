@@ -137,7 +137,8 @@ def main():
     # 8. Calculate the stimulation of the otolith hair cell
     stim_otolith = stim_otolith_left(acc_adjusted)
     # write to file
-    ...
+    np.savetxt("Exercise_2\Outputs\MaxAcceleration.txt", [
+            np.min(stim_otolith), np.max(stim_otolith)],fmt='%10.5f')
 
 
     # 9. Show the head orientation, expressed with quaternions as a function of time
@@ -304,18 +305,20 @@ def stim_otolith_left(adjusted_accelerations):
         y_acc.append(adjusted_accelerations[i][1])
     return y_acc
 
-@running_decorator
+
 def show_head_orientation(path,head_orientation_q,head_orientation_v,t):
     """
     Creates a .avi file playing the nose orientation as a function of time or maybe 
     a .js file that will be opened in the browser
     ----------
     INPUTS:
-    ...
+    head_orientation_q:
+    head_orientation_v:
+    t:
     ----------
     Returns: Void
     """
-
+    print("Showing head orientation @http:\\127.0.0.1:8000\\Exercise_2\\Outputs\\index.html")
     # A bit of a fiddle for displaying the right components of the quaternion...
     plt.plot(t,head_orientation_q[:,1:4])
     plt.title("Vector components of the quaternions vs time")
@@ -336,16 +339,14 @@ def show_head_orientation(path,head_orientation_q,head_orientation_v,t):
 
     # Start live server and Open the HTML file in the default web browser
 
+ 
     PORT = 8000
 
     Handler = http.server.SimpleHTTPRequestHandler
-    webbrowser.open('http:\\127.0.0.1:8000\\Exercise_2\\Outputs\\index.html')
-
     with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        webbrowser.open('http:\\127.0.0.1:8000\\Exercise_2\\Outputs\\index.html')
         print("\nserving at port", PORT,end="\r")
-        httpd.serve_forever()
-
-   
+        httpd.serve_forever()      
 
 # Animation functions
 def create_html():
