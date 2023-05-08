@@ -123,7 +123,7 @@ def main():
                         np.sqrt(np.sum(Canals[side]**2, axis=1))).T
 
     # now we can adjust n0 to the head coordinates
-    R_rot = rotmat('y', 15)
+    R_rot = rotmat('y', -15)
     Right_horizontal_SCC = Canals['right'][0]
     n0_HC = R_rot.dot(Right_horizontal_SCC.T).T
 
