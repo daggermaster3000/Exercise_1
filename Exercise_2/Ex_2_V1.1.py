@@ -57,8 +57,8 @@ import threading
 import itertools
 import os
 import webbrowser
-import http.server
-import socketserver
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+import logging
 
 
 
@@ -130,9 +130,9 @@ def main():
             np.min(cupula_defl), np.max(cupula_defl)],fmt='%10.5f')   # save to .txt file
 
 
-    # 7. Using q˜0 and ⃗ω(t) sensor , calculate q˜(t), i.e. the head orientation re space during the movement
+    # 7. Using q˜0 and ω(t) sensor , calculate q˜(t), i.e. the head orientation re space during the movement
     head_orientation_v, head_orientation_q = calculate_head_orientation(omegas_adjusted)
-    
+    np.savetxt("Exercise_2\Outputs\Nose_final.txt",head_orientation_v[-1],fmt='%10.5f')
 
     # 8. Calculate the stimulation of the otolith hair cell
     stim_otolith = stim_otolith_left(acc_adjusted)
@@ -142,7 +142,7 @@ def main():
 
 
     # 9. Show the head orientation, expressed with quaternions as a function of time
-    show_head_orientation(...,head_orientation_q,head_orientation_v,t)
+    show_head_orientation(head_orientation_q,head_orientation_v,t)
 
     print('Done!')
 
@@ -306,19 +306,20 @@ def stim_otolith_left(adjusted_accelerations):
     return y_acc
 
 
-def show_head_orientation(path,head_orientation_q,head_orientation_v,t):
+def show_head_orientation(head_orientation_q,head_orientation_v,t,path="Exercise_2\\Outputs\\"):
     """
     Creates a .avi file playing the nose orientation as a function of time or maybe 
     a .js file that will be opened in the browser
     ----------
     INPUTS:
-    head_orientation_q:
-    head_orientation_v:
-    t:
+    head_orientation_q: Head orientation quaternions
+    head_orientation_v: Head orientation vectors
+    t:                  time
+    path:               Path in which we generate the output files
     ----------
     Returns: Void
     """
-    print("Showing head orientation @http:\\127.0.0.1:8000\\Exercise_2\\Outputs\\index.html")
+    print("Showing head orientation @: http:\\127.0.0.1:8000\\Exercise_2\\Outputs\\index.html")
     # A bit of a fiddle for displaying the right components of the quaternion...
     plt.plot(t,head_orientation_q[:,1:4])
     plt.title("Vector components of the quaternions vs time")
@@ -326,6 +327,8 @@ def show_head_orientation(path,head_orientation_q,head_orientation_v,t):
     #plt.show()
 
     # Animation stuff
+
+    # convert python array to js array
     js_array = f""
     for i in head_orientation_v:
         pos = f""
@@ -334,22 +337,59 @@ def show_head_orientation(path,head_orientation_q,head_orientation_v,t):
         js_array = js_array + f"[{pos[0:-1]}], "
     js_array = js_array[0:-2]
 
-    create_html()
-    create_js(js_array)
+    # create the files for the animation
+    create_html(path)
+    create_js(js_array,path)
 
     # Start live server and Open the HTML file in the default web browser
+    server = MyServer()
+    webbrowser.open('http://127.0.0.1:8000/Exercise_2/Outputs/index.html')
+    server.start()
 
- 
-    PORT = 8000
+    # Handle when the user wants to exit
+    stop = ""
+    while stop != "q":
+        stop = input("press q to quit:\n")
+    server.stop()    
+    
+    # cleanup files
+    os.remove(path+'Main.js')
+    os.remove(path+'index.html')
 
-    Handler = http.server.SimpleHTTPRequestHandler
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
-        webbrowser.open('http:\\127.0.0.1:8000\\Exercise_2\\Outputs\\index.html')
-        print("\nserving at port", PORT,end="\r")
-        httpd.serve_forever()      
 
-# Animation functions
-def create_html():
+# Server classes for the serving the animation
+
+class NoLogRequestHandler(SimpleHTTPRequestHandler):
+    """
+    A handler so that there is no logging msg in the console
+    """
+    def log_message(self, format, *args):
+        pass
+
+
+class MyServer(threading.Thread):
+    """
+    A simple threaded server to handle requests for displaying the animation
+    """
+    def run(self):
+        self.server = ThreadingHTTPServer(('localhost', 8000), NoLogRequestHandler)
+        self.server.serve_forever()
+    def stop(self):
+        self.server.shutdown()
+
+
+
+# Functions to create the html and js files for the animation
+
+def create_html(path):
+    """
+    Generate a html file to display the animation
+    ----------
+    path:   Path to which we generate the file
+    ----------
+    Returns: Writes a .html file in Exercise_2\\Outputs\\index.html
+    """
+
     # Define the content of the HTML file
     html_content = f"""
     <!DOCTYPE html>
@@ -394,10 +434,18 @@ h1,p,button{{
     """
 
     # Write the HTML file to disk
-    with open('Exercise_2\Outputs\index.html', 'w') as f:
+    with open(path+'index.html', 'w') as f:
         f.write(html_content)
 
-def create_js(js_array):
+def create_js(js_array,path):
+    """
+    Generate a js file that displays a coordinate system, a vector and a head in 3D in the /Outputs folder
+    ----------
+    INPUTS:
+    js_array:   An array containing 3D coordinates
+    ----------
+    Returns: Writes a .js file in Exercise_2\\Outputs\\Main.js
+    """
     js_content = f"""
 import * as THREE from 'three';
 import {{ OrbitControls }} from 'three/addons/controls/OrbitControls.js';
@@ -513,7 +561,7 @@ animate();
     
     """
 
-    with open('Exercise_2\\Outputs\\Main.js', 'w') as f:
+    with open(path+'Main.js', 'w') as f:
         f.write(js_content)
 
 
@@ -521,6 +569,7 @@ animate();
 
 if __name__ == '__main__':
     main()
+
 
 
 
