@@ -33,7 +33,7 @@ TODO:
 MISC
 - adjusted means relative to the head <done>
 - write as functions <done>
-- loading wheels for each function <done> (sort of doesnt work yet on conda prompt)
+- loading wheels for each function <done> 
 - 3D animation <done>
 - Check the names of the output files and if the output is correct
 - Make it that the paths can run on every system (not just our git file structure)
@@ -80,6 +80,9 @@ from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 # Main function
 
 def main():
+    """
+    The main function
+    """
     
     # 1. Read in the data (use only the 3D-acceleration and the 3D-angular-velocity! I expect you to calculate the orientation-quaternion yourself!)
 
@@ -166,9 +169,12 @@ def main():
 # Functions
 
 def running_decorator(func):
+    """
+    A wrapper function to add a loading wheel to the wrapped function
+    """
     def wrapper(*args, **kwargs):
-        msg = f"Running {func.__name__}..."
-        print(msg, end="\r\t\t\t\t\t")
+        msg = f"Running {func.__name__:<{30}}"
+        #print(msg, end="\t\t\t\t\t")
         sys.stdout.flush()
         event = threading.Event()
         loading_thread = threading.Thread(target=print_loading_message, args=(event,msg))
@@ -187,9 +193,9 @@ def running_decorator(func):
     def print_loading_message(event,msg):
         for char in itertools.cycle("|/-\\"):
             if event.is_set():
-                print("Done.")
+                print(msg+f"Done.")
                 break
-            print(char, end="\r\t\t\t\t\t")
+            print(msg+char, end="\r")
             time.sleep(0.1)
             sys.stdout.flush()
             
@@ -212,7 +218,6 @@ def q_shortest(a, b):
 
 @running_decorator
 def get_data_sensor(file_path):
-    
     """
     INPUTS:
     file_path: the path to the file containing the sensor data
