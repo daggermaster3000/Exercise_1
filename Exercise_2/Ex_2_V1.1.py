@@ -41,7 +41,7 @@ MISC
 
 OPTIONAL
 - Add a thread for the live server <done>
-- Add simulation of cupular deflections
+- Add simulation of cupular deflections in the animation
 
 STEPS
 - 1 <done>
