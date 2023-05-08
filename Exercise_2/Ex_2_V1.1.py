@@ -1,33 +1,48 @@
 
 """
-Exercise: Simulation of a Vestibular Implant
+Exercise 2: Simulation of a Vestibular Implant
 Authors: Quillan Favey, Alessandro Pasini
 Version: 1.1
 Date: 25.04.2023
 
 This file contains code for simulating the output of a 
-vestibular implant using data from an IMU.
+vestibular implant using data from an IMU. It takes a .txt input
+file containing data from an IMU and outputs the following files:
+
+OUTPUTS: 
+    - Cupula_deflections.txt    MAX and MIN cupular deflections
+    - MaxAcceleration.txt       MAX accelleration sensed by otholith hair cell
+    - Nose_final.txt            Final nose orientation
+    - index.html (temp)         To visualize the head orientation during the simulation
+    - Main.js (temp)            To visualize the head orientation during the simulation
 
 
-Naming convention in this file: 
+NAMING CONVENTIONS: 
 
-Rotation matrices start with R
-quaternions start with q
-R_a_b is rotation from coordinates a to coordinates b
-name_a is a vector in coordinates a
-IMU: IMU coordinates (all measurements are in these coordinates)
-hc: head coordinates / 'world coordinates at t=0'
-rc: Reid's line coords
+    - a_:                       an acceleration vector
+    - R:                        rotation matrix
+    - _q:                       quaternion
+    - _v:                       vector
+    - HC:                       head coordinates 
+    - IC:                       IMU coordinates
 
-
+NOTES:
+    - Make sure you are connected to the internet or the animation will not work
+    - ...
 TODO:
 MISC
 - adjusted means relative to the head <done>
 - write as functions <done>
 - loading wheels for each function <done> (sort of doesnt work yet on conda prompt)
 - 3D animation <done>
+- Check the names of the output files and if the output is correct
+- Make it that the paths can run on every system (not just our git file structure)
 - Propre
-- Add a thread for the live server
+
+OPTIONAL
+- Add a thread for the live server <done>
+- Add simulation of cupular deflections
+
 STEPS
 - 1 <done>
 - 2 <done>
@@ -58,7 +73,6 @@ import itertools
 import os
 import webbrowser
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
-import logging
 
 
 
@@ -83,8 +97,7 @@ def main():
 
     acc_adjusted, omegas_adjusted, q_0 = align_sensor_vectors(
         a_IMU_base_IC, a_IMU_head_IC, a_IMU_t0, acc, omega)
-    # np.savetxt("accs_v2.txt",acc_adjusted)
-
+   
     # 3. Find n0, i.e. the orientation of the right SCC (semicircular canal) at t=0
 
     # Define the measured orientations of the SCCs relative to Reid's plane (from the IPYNBs)
@@ -132,7 +145,7 @@ def main():
 
     # 7. Using q˜0 and ω(t) sensor , calculate q˜(t), i.e. the head orientation re space during the movement
     head_orientation_v, head_orientation_q = calculate_head_orientation(omegas_adjusted)
-    np.savetxt("Exercise_2\Outputs\Nose_final.txt",head_orientation_v[-1],fmt='%10.5f')
+    #np.savetxt("Exercise_2\Outputs\Nose_final.txt",head_orientation_v[:-1],fmt='%10.5f')
 
     # 8. Calculate the stimulation of the otolith hair cell
     stim_otolith = stim_otolith_left(acc_adjusted)
@@ -563,8 +576,6 @@ animate();
 
     with open(path+'Main.js', 'w') as f:
         f.write(js_content)
-
-
 
 
 if __name__ == '__main__':
