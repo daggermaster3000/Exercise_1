@@ -10,9 +10,10 @@ vestibular implant using data from an IMU. It takes a .txt input
 file containing data from an IMU and outputs the following files:
 
 OUTPUTS: 
-    - Cupula_deflections.txt    MAX and MIN cupular deflections
-    - MaxAcceleration.txt       MAX accelleration sensed by otholith hair cell
-    - Nose_final.txt            Final nose orientation
+      FILES                     DESCRIPTION                                                         VALUES
+    - CupularDisplacement.txt   MIN and MAX cupular deflections in [mm]                             [-0.12843, 0.12035]
+    - MaxAcceleration.txt       MIN and MAX accelleration sensed by otholith hair cell in [m/s2]    [-5.62990, 6.87026]
+    - Nose_final.txt            Final nose orientation (x,y,z)                                      [0.99691, 0.05903, 0.05185]
     - index.html (temp)         To visualize the head orientation during the simulation
     - Main.js (temp)            To visualize the head orientation during the simulation
 
@@ -20,7 +21,7 @@ OUTPUTS:
 NAMING CONVENTIONS: 
 
     - a_:                       an acceleration vector
-    - R:                        rotation matrix
+    -  R:                       rotation matrix
     - _q:                       quaternion
     - _v:                       vector
     - HC:                       head coordinates 
@@ -84,27 +85,26 @@ def main():
     The main function
     """
     
-    # 1. Read in the data (use only the 3D-acceleration and the 3D-angular-velocity! I expect you to calculate the orientation-quaternion yourself!)
-
+    # 1. Read in the data 
 
     # Read data from IMU
     in_file = 'Exercise_2\MovementData\Walking_02.txt'
     acc, omega, rate, n_samples = get_data_sensor(in_file)
 
-    # 2. Find q˜0, i.e. the orientation of the IMU at t=0 re space
+    # 2. Find q0, i.e. the orientation of the IMU at t=0 re space
 
-    # Set accelerations sensed by the IMU
+    # Set initial accelerations sensed by the IMU
     a_IMU_base_IC = np.r_[0, 0, -9.81]
     a_IMU_head_IC = np.r_[0, 9.81, 0]
     a_IMU_t0 = acc[0, :]
 
+    # get adjusted accelerations and omegas 
     acc_adjusted, omegas_adjusted, q_0 = align_sensor_vectors(
         a_IMU_base_IC, a_IMU_head_IC, a_IMU_t0, acc, omega)
    
-    # 3. Find n0, i.e. the orientation of the right SCC (semicircular canal) at t=0
+    # 3. Find the orientation of the right SCC (semicircular canal) at t=0
 
     # Define the measured orientations of the SCCs relative to Reid's plane (from the IPYNBs)
-
     Canals = {
         'info': 'The matrix rows describe ' +
                 'horizontal, anterior, and posterior canal orientation',
@@ -117,7 +117,7 @@ def main():
             [-0.58930,  0.78839,  -0.17655],
             [-0.69432, -0.66693,  -0.27042]])}
 
-    # Normalize these vectors (just a small correction):
+    # Normalize the vectors:
     for side in ['right', 'left']:
         Canals[side] = (Canals[side].T /
                         np.sqrt(np.sum(Canals[side]**2, axis=1))).T
@@ -127,10 +127,10 @@ def main():
     Right_horizontal_SCC = Canals['right'][0]
     n0_HC = R_rot.dot(Right_horizontal_SCC.T).T
 
-    # 4. Using q˜0, ⃗n0 and ⃗ω(t) sensor , calculate stim, the stimulation of the right SCC
+    # 4. Using q0, n0 and ω(t) sensor , we calculate stim, the stimulation of the right SCC
     stim = omegas_adjusted @ n0_HC
 
-    # 5. Find the canal-transfer-function re velocity (not re rotation-angle!)
+    # 5. Next we find the canal-transfer-function re velocity.
 
     T1 = 0.01  # Define time constants [s]
     T2 = 5
@@ -142,19 +142,18 @@ def main():
     # convert to mm
     r_canal = 3.2
     cupula_defl = cupula_defl*r_canal
-    np.savetxt("Exercise_2\Outputs\Cupula_deflections.txt", [
+    np.savetxt("Exercise_2\Outputs\CupularDisplacement.txt", [
             np.min(cupula_defl), np.max(cupula_defl)],fmt='%10.5f')   # save to .txt file
 
 
-    # 7. Using q˜0 and ω(t) sensor , calculate q˜(t), i.e. the head orientation re space during the movement
+    # 7. Using q0 and ω(t) of the sensor , we calculate q(t), i.e. the head orientation re space during the movement
     head_orientation_v, head_orientation_q = calculate_head_orientation(omegas_adjusted)
-    #np.savetxt("Exercise_2\Outputs\Nose_final.txt",head_orientation_v[:-1],fmt='%10.5f')
+    np.savetxt("Exercise_2\\Outputs\\Nose_final.txt",head_orientation_v[-1][:],fmt='%10.5f')    # save to .txt file
 
     # 8. Calculate the stimulation of the otolith hair cell
     stim_otolith = stim_otolith_left(acc_adjusted)
-    # write to file
     np.savetxt("Exercise_2\Outputs\MaxAcceleration.txt", [
-            np.min(stim_otolith), np.max(stim_otolith)],fmt='%10.5f')
+            np.min(stim_otolith), np.max(stim_otolith)],fmt='%10.5f')   # save to .txt file
 
 
     # 9. Show the head orientation, expressed with quaternions as a function of time
@@ -170,7 +169,8 @@ def main():
 
 def running_decorator(func):
     """
-    A wrapper function to add a loading wheel to the wrapped function
+    A wrapper function to add a loading wheel to the wrapped function 
+    (I thought it would look cool but it is useless...)
     """
     def wrapper(*args, **kwargs):
         msg = f"Running {func.__name__:<{30}}"
