@@ -7,7 +7,7 @@ Date: 25.04.2023
 
 This file contains code for simulating the output of a 
 vestibular implant using data from an IMU. It takes a .txt input
-file (Walking_02.txt) containing data from an IMU and outputs the following files:
+file (Walking_02.txt) containing data from an IMU andoutputs the following files:
 
 OUTPUTS: 
       FILES                     DESCRIPTION                                                         VALUES
@@ -60,7 +60,7 @@ def main():
     # 1. Read in the data 
 
     # Read data from IMU
-    in_file = 'Ex2_Favey_Pasini\\MovementData\\Walking_02.txt'
+    in_file = 'MovementData\Walking_02.txt'
     acc, omega, rate, n_samples = get_data_sensor(in_file)
 
     # 2. Find q0, i.e. the orientation of the IMU at t=0 re space
@@ -114,17 +114,17 @@ def main():
     # convert to mm
     r_canal = 3.2
     cupula_defl = cupula_defl*r_canal
-    np.savetxt("Ex2_Favey_Pasini\\Outputs\\CupularDisplacement.txt", [
+    np.savetxt("Outputs\\CupularDisplacement.txt", [
             np.min(cupula_defl), np.max(cupula_defl)],fmt='%10.5f')   # save to .txt file
 
 
     # 7. Using q0 and ω(t) of the sensor , we calculate q(t), i.e. the head orientation re space during the movement
     head_orientation_v, head_orientation_q = calculate_head_orientation(omegas_adjusted)
-    np.savetxt("Ex2_Favey_Pasini\\Outputs\\Nose_final.txt",head_orientation_v[-1][:],fmt='%10.5f')    # save to .txt file
+    np.savetxt("Outputs\\Nose_final.txt",head_orientation_v[-1][:],fmt='%10.5f')    # save to .txt file
 
     # 8. Calculate the stimulation of the otolith hair cell
     stim_otolith = stim_otolith_left(acc_adjusted)
-    np.savetxt("Ex2_Favey_Pasini\\Outputs\\MaxAcceleration.txt", [
+    np.savetxt("Outputs\\MaxAcceleration.txt", [
             np.min(stim_otolith), np.max(stim_otolith)],fmt='%10.5f')   # save to .txt file
 
 
@@ -289,7 +289,7 @@ def stim_otolith_left(adjusted_accelerations):
     return y_acc
 
 
-def show_head_orientation(head_orientation_q,head_orientation_v,t,path="Ex2_Favey_Pasini\\Outputs\\"):
+def show_head_orientation(head_orientation_q,head_orientation_v,t,path="Outputs\\"):
     """
     Creates an .html and .js file that will be opened in the browser to view the head orientation
     during the walk.
@@ -302,13 +302,13 @@ def show_head_orientation(head_orientation_q,head_orientation_v,t,path="Ex2_Fave
     ----------
     Returns: Void
     """
-    print("Showing head orientation @ http:\\127.0.0.1:8000\\"+path)
+    print("Showing head orientation @ http:\\127.0.0.1:8000\\"+path+"index.html")
 
     # A bit of a fiddle for displaying the right components of the quaternion...
     plt.plot(t,head_orientation_q[:,1:4])
     plt.title("Vector components of the quaternions vs time")
     plt.xlabel("Time [s]")
-    plt.savefig("Ex2_Favey_Pasini\\Outputs\\Quaternions.png")
+    plt.savefig("outputs\\Quaternions.png")
 
     # Animation stuff
 
@@ -327,7 +327,7 @@ def show_head_orientation(head_orientation_q,head_orientation_v,t,path="Ex2_Fave
 
     # Start live server and Open the HTML file in the default web browser
     server = MyServer()
-    webbrowser.open('http://127.0.0.1:8000/Ex2_Favey_Pasini/Outputs/index.html')
+    webbrowser.open('http://127.0.0.1:8000/Outputs/index.html')
     server.start()
 
     # Handle when the user wants to exit
@@ -371,7 +371,7 @@ def create_html(path):
     ----------
     path:   Path to which we generate the file
     ----------
-    Returns: Writes a .html file in Ex2_Favey_Pasini\\Outputs\\index.html
+    Returns: Writes a .html file inoutputs\\index.html
     """
 
     # Define the content of the HTML file
@@ -428,7 +428,7 @@ def create_js(js_array,path):
     INPUTS:
     js_array:   An array containing 3D coordinates
     ----------
-    Returns: Writes a .js file in Ex2_Favey_Pasini\\Outputs\\Main.js
+    Returns: Writes a .js file in outputs\\Main.js
     """
     js_content = f"""
 import * as THREE from 'three';
