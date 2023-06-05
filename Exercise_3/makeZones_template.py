@@ -1,212 +1,130 @@
-""" Demo of how to apply radius-dependent filter to an image. """
+''' Exercise 3: Simulation of a "visual prosthesis
 
-# Author: Thomas Haslwanter
-# Date:   May 2023
+Authors: Quillan Favey, Alessandro Pasini
+Version: 1.0
+Date: 26.05.2023
 
+This file contains code for simulating a visual prosthesis
+'''
 
+# import libraries 
 import matplotlib.pyplot as plt
 import numpy as np
+import math
 from scipy import ndimage
 import cv2
 import PySimpleGUI as sg
 from skimage import color,filters
 
 
-class MyImages:
-    """Reading, writing, and filtering of images"""
+class Retina:
+    ''' Class for simulating ganglion cells and V1 cells responses. '''
 
-    def __init__(self, in_file=None):
-        """Get the image-name, -data and -size
-
-        Images have the following methods and properties:
-
-        Input:
-        ------
-        in_file : string
-            Path and filename of in_file
-
-        Properties:
-        -----------
-        size : tuple
-            Horizontal and vertical image size
-        fileName : string
-            Name of original file
-        data : uint8
-            Image data
-        focus : tuple
-            Horizontal and vertical fixation point
-
-        Methods:
-        --------
-        - apply_filters
-        - save
-
-        """
-
+    def get_file(self, in_file = None):
+        ''' Get file (if not specified before) using a popup window '''
         if in_file == None:
             self.fileName = sg.popup_get_file("", no_window=True)
         else:
             self.fileName = in_file
-        raw_data = plt.imread(self.fileName)
+        self.raw_data = plt.imread(self.fileName)
+        print(f'Image {self.fileName} successfully read.')
+    
 
-        if len(raw_data.shape) == 3:  # convert to grayscale
-            raw_data = color.rgb2gray(raw_data)
+    def adjust_image(self):
+        ''' If RGB, converts image to grayscale. Then, gets the size of the image. '''
+        if len(self.raw_data.shape) == 3:  # if RGB, convert to greyscale
+            self.data = color.rgb2gray(self.raw_data)
+            print('Image converted to grayscale.')
+        self.size = np.shape(self.data)
+        self.size_xy = (self.size[1], self.size[0])
+        print(f'Image size in y,x coordinates: {self.size_xy} pixels.')
 
-        self.size = np.shape(raw_data)
-        print(f"Image size: {self.size} px.")
 
-        if (len(raw_data.shape) == 3):  # flip the image upside down, assuming it is an RGB-image
-            flipped_index = range(self.size[0])
-            flipped_index.sort(reverse=True)
-            self.data = raw_data[flipped_index, :]
-        else:
-            self.data = raw_data
-
-        # show the image, and get the focus point for the subsequent calculations
-        plt.imshow(self.data, "gray")
+    def fix_point(self):
+        ''' Show the image, and get the focus point for the subsequent calculations. 
+            To select a fixation point, click on the image '''
+        plt.imshow(self.data, 'gray')
         selected_focus = plt.ginput(1)
         plt.close()
         # ginput returns a list with one selection element, take the first
         # element in this list
         self.focus = np.rint(selected_focus)[0].tolist()
-        self.focus.reverse()  # for working with the data x/y's
-        print(self.focus)
+        self.focus.reverse()
+        print(f'selected fixation point in y,x coordinates: {self.focus}.')
 
+    def furthest_corner(self):
+        ''' Finds the furthest corner from the selected focus '''
+        self.corners = np.array([0,0,
+                                 self.size_xy[0],0,
+                                 0,self.size_xy[1],
+                                 self.size_xy[0],self.size_xy[1]]).reshape(4,2)
+        self.fp = np.tile(self.focus, 4).reshape(4,2)
+        self.distances = np.sqrt(np.sum((self.corners - self.fp)**2, axis = 1))
+        self.maxDistance = np.max(self.distances)
+        print(f'Furthest corner is at {np.round(self.maxDistance, decimals = 0)} pixels.')
 
-    def apply_filters(self, Zones, Filters, openCV=True):
-        """Applying the filters to the different image zones
-        Input:
-        ------
-        Zones : numpy array (uint8)
-            Integers with same size as self.data, indicating for each pixel to which "Zone" it belongs.
-        Filters: numpy array (floats)
-            quadratic array, containing the convolution kernel for each filter
+    def make_zones(self):
+        ''' Creates "numZones" different circular regions around the chosen focus 
+            on the greyscaled image. Calculations are based on the maximum radius,
+            i.e. the maximal distance from the selected focus to the furthest corner'''
+        # Set the number of zones
+        self.numZones = 10
 
-        Return:
-        -------
-        im_out : numpy array (uint8)
-            Final image
-        filtered_images : list of numpy arrays (uint8)
-            Same length as "Filters"
-            Filtered image of each Filter
-        """
+        # The np.meshgrid function is used to create coordinate grids X and Y that span the 
+        # dimensions of the size array.
+        X, Y = np.meshgrid(np.arange(self.size[0]) + 1, np.arange(self.size[1]) + 1)
 
-        # ------------------- Here you have to apply the filters ------------
-        final = np.zeros_like(self.data, dtype = "float32")
-        filtered_images = []
-        for Filter in Filters:
-           filtered_images.append(cv2.filter2D(self.data, -1, Filter)) 
-        for ii in np.arange(0,len(filtered_images)):
-            final[Zones==ii] = filtered_images[ii][Zones==ii]
+        # Calculating distances from focus: Euclidean distances from the focus point to each 
+        # point in the grid are calculated. The resulting distances are stored in RadFromFocus. 
+        self.RadFromFocus = np.sqrt((X.T - self.focus[0]) ** 2 + (Y.T - self.focus[1]) ** 2) # px
         
-        return final
+        # Assign each value to a Zone, based on its distance from the focus. 
+        # Every radius is normalized to the maxDistance radius ([0, 1])
+        # By multiplyng for the number of zones, and flooring the result, every radius will be 
+        # categorized as 0, 1, 2, 3, ..., numZones-1
+        self.Zones = np.floor(self.RadFromFocus / self.maxDistance * self.numZones).astype(np.uint8)
+        self.Zones[self.Zones == self.numZones] = self.numZones - 1  # eliminate the few maximum radii 
+                                                           # (if a radio si long as the max radius, it will fall in the numZones zone. 
+                                                           # Since zones start from 0 to numZones-1
+                                                           # it should be put in the numZones - 1 zone)
 
-    def save(self, out_data):
-        """Save the resulting image to a PNG-file"""
+        #just to observe: colormap to visualize zones by color. HAS TO BE REMOVED
+        cmap = plt.get_cmap('tab10', self.numZones)
+        plt.imshow(self.Zones, cmap=cmap)
+        plt.colorbar(ticks=np.arange(self.numZones))
+        plt.show()
 
-        in_stem = self.fileName.find(".")
-        out_file = self.fileName[:in_stem] + "_out.png"
-        try:
-            plt.imsave(out_file, out_data, cmap="gray")
-            print(f"Result saved to {out_file}")
-        except IOError:
-            print(f"Could not save {out_file}")
+    def make_filters(self):
+        ''' Converts pixel location to retinal location: each eccentricity is converted in distance 
+            from the fovea. Then, receptive fields are calculated (in arcmin) and translated to the 
+            display image (in pixels).'''
+        # parameters
+        display_resolution = 1400 # px
+        height = 0.3 # m
+        display_distance = 0.6 # m
+        r_eye = 1.25e-2 # m
+        px_to_m = height / display_resolution
+        m_to_px = 1 / px_to_m
+        
+        self.RFS_arcmin = []
+        for ii in range(self.numZones):
+            zoneRad = (self.maxDistance / self.numZones * (ii + 0.5)) # eccentricity = average radius in a zone, in pixel
+            eccentricities = zoneRad * px_to_m # in meters
+            angles_rad = np.arctan2(eccentricities, display_distance) # in radians
+            eccentricity = angles_rad * r_eye * 1000 # distance from fovea in millimeters
+            rfs_arcmin = 6 * eccentricity # receptive field of magnocellular cells in arcmin
+            self.RFS_arcmin.append(rfs_arcmin) 
 
-
-def make_zones_and_filters(myImg):
-    """Break up the image in "numZones" different circular regions about the
-    chosen focus
-
-    Input:
-    ------
-    myImg : myImages-object
-
-    Returns:
-    --------
-    Zones : numpy array (uint8)
-        Integers with same size as self.data, indicating for each pixel to which
-        "Zone" it belongs.
-    Filters : numpy array (floats)
-        quadratic array, containing the convolution kernel for each filter
-
-    """
-
-    # Set the number of zones
-    numZones = 10
-
-    # For each pixel, calculate the radius from the fixation point
-    imSize = np.array(myImg.size)
-    corners = np.array([[1.0, 1.0],
-                        [1.0, imSize[1]],
-                        [imSize[0], 1.0],
-                        imSize[0:2]])
-    radii = np.sqrt(np.sum((corners - myImg.focus) ** 2, axis=1))
-    rMax = np.max(radii)
-
-    X, Y = np.meshgrid(np.arange(myImg.size[0]) + 1, np.arange(myImg.size[1]) + 1)
-    RadFromFocus = np.sqrt((X.T - myImg.focus[0]) ** 2 + (Y.T - myImg.focus[1]) ** 2)
-    
-    # Assign each value to a Zone, based on its distance from the "focus"
-    Zones = np.floor(RadFromFocus / rMax * numZones).astype(np.uint8)
-    Zones[Zones == numZones] = numZones - 1  # eliminate the few maximum radii
-
-    # Generate numZones filters, and save them to the list "Filters"
-    Filters = list()
-
-    # ------------------- Here you have to find your own filters ------------
-    # ------------------- this is just a demo! ------------
-
-    # Parameters
-    display = 1400 #[px]
-    d = 0.6
-    y = 0.3
-    r_eye = 1.5e-2
-
-    # Geometric setup
-    alpha = np.arctan2(y, d)
-    eccentricity = r_eye * alpha
-
-    # Calculate receptive field size [arcmin]
-    RFS = 6*eccentricity
-
-    for ii in range(numZones):
-        # The filter-parameters depend on the scale at which you want the edges!
-        (sd_center, sd_surround) = (1, 2)
-        edges = filters.gaussian(myImg.data, sd_center) - filters.gaussian(myImg.data, sd_surround)
-        Filters.append(edges)
-
-    return (Zones, Filters)
-    """        # eccentricity = average radius in a zone, in pixel
-        zoneRad = ( rMax / numZones * (ii + 0.5))  
-
-        #  the "1/4" is arbitrary, just used to give a proper visual example
-        filter_length = np.rint( zoneRad / 4)  
-
-        # for Reasons of memory efficiency, limit filter size
-        filter_length = np.int32( min(81, filter_length))
-
-        # normalize the filter
-        curFilter = ( np.ones((filter_length, filter_length)) / filter_length ** 2) 
-
-        Filters.append(curFilter)
-        print("filter_length %d: %g" % (ii, filter_length))"""
-
-
-def main(in_file="Exercise_3\Images\cat.jpg"):
-    """Simulation of a retinal implant. The image can be selected, and the
-    fixation point is chosen interactively by the user."""
-
-    # Select the image, and perform the calculations
-    myImg = MyImages(in_file)
-    Zones, Filters = make_zones_and_filters(myImg)
-    filtered = myImg.apply_filters(Zones, Filters)
-
-    # Show the results
-    plt.imshow(filtered, "gray")
-    plt.show()
-    myImg.save(filtered)
-    print("Done!")
-
-
-if __name__ == "__main__":
-     main()
+        self.RFS_px = []
+        for rf in self.RFS_arcmin:
+            angle_deg = rf / 60 # convert arcmin to degrees
+            rfs_m = np.abs(np.tan(angle_deg)*display_distance)
+            rfs_px = rfs_m * m_to_px
+            self.RFS_px.append(rfs_px)
+        
+def DoG(x, sig1, sig2):
+    ''' Approximation of the response of ganglion cells with a Difference of Gaussians'''
+    output = (1/(sig1*np.sqrt(2*math.pi)))*np.exp(-(x**2/(2*sig1**2))) \
+        - (1/(sig2*np.sqrt(2*math.pi)))*np.exp(-(x**2/(2*sig2**2)))
+    return output
+  
