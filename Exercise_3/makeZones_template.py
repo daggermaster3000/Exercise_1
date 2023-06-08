@@ -121,6 +121,8 @@ class Retina:
             rfs_m = np.abs(np.tan(angle_deg)*display_distance)
             rfs_px = rfs_m * m_to_px
             self.RFS_px.append(rfs_px)
+
+        ...
         
 def DoG(x, sig1, sig2):
     ''' Approximation of the response of ganglion cells with a Difference of Gaussians'''
@@ -128,3 +130,14 @@ def DoG(x, sig1, sig2):
         - (1/(sig2*np.sqrt(2*math.pi)))*np.exp(-(x**2/(2*sig2**2)))
     return output
   
+
+def main():
+    retina = Retina()
+    retina.get_file()
+    retina.adjust_image()
+    retina.fix_point()
+    retina.furthest_corner()
+    retina.make_zones()
+    retina.make_filters()
+
+main()
