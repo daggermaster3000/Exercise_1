@@ -19,9 +19,9 @@ NOTES/USAGE:
 
       
 TODO
-- V1 cells simulation
+- V1 cells simulation                                               DONE
 - All image formats supported
-- Propre and check for plagiarism in apply gaussians
+- Propre and check for plagiarism in apply gaussians                hahahha
 
 """
 
@@ -29,8 +29,8 @@ TODO
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-from scipy import ndimage
-import cv2
+from scipy import ndimage  #??
+import cv2 
 import PySimpleGUI as sg
 from skimage import color,filters
 import os
@@ -60,9 +60,11 @@ class Retina:
         if len(self.raw_data.shape) == 3:  # if RGB, convert to greyscale
             self.data = color.rgb2gray(self.raw_data)
             print('Image converted to grayscale.')
+        else:
+            self.data = self.raw_data
         self.size = np.shape(self.data)
         self.size_xy = (self.size[1], self.size[0])
-        print(f'Image size in y,x coordinates: {self.size_xy} pixels.')
+        print(f'Image size in x,y coordinates: {self.size_xy} pixels.')
 
 
     def fix_point(self):
@@ -108,39 +110,26 @@ class Retina:
         self.RadFromFocus = np.sqrt((X.T - self.focus[0]) ** 2 + (Y.T - self.focus[1]) ** 2) # px
         
         # Assign each value to a Zone, based on its distance from the focus. 
-        # Every radius is normalized to the maxDistance radius ([0, 1])
-        # By multiplyng for the number of zones, and flooring the result, every radius will be 
-        # categorized as 0, 1, 2, 3, ..., numZones-1
         self.Zones = np.floor(self.RadFromFocus / self.maxDistance * self.numZones).astype(np.uint8)
         self.Zones[self.Zones == self.numZones] = self.numZones - 1  # eliminate the few maximum radii 
-                                                           # (if a radio si long as the max radius, it will fall in the numZones zone. 
-                                                           # Since zones start from 0 to numZones-1
-                                                           # it should be put in the numZones - 1 zone)
+                                                          
+        print("Zones are computed.")
 
-        #just to observe: colormap to visualize zones by color. HAS TO BE REMOVED
-        """
-        cmap = plt.get_cmap('jet', self.numZones)
-        plt.imshow(self.Zones, cmap=cmap)
-        plt.colorbar(ticks=np.arange(self.numZones))
-        plt.show()
-        """
-        
-        print("zones done")
 
     def get_RFS(self):
         ''' Converts pixel location to retinal location: each eccentricity is converted in distance 
             from the fovea. Then, receptive fields are calculated (in arcmin) and translated to the 
             display image (in pixels).'''
-        # parameters
         
+        # parameters
         display_resolution = 1400 # px
         height = 0.3 # m
         display_distance = 0.6 # m
         r_eye = 1.25e-2 # m
         px_to_m = height / display_resolution
         m_to_px = 1 / px_to_m
+       
         self.filtered = []
-        self.RFS_px = []
         self.RFS_arcmin = []
         self.RFS_px = []
 
@@ -160,42 +149,69 @@ class Retina:
             rfs_px = rfs_m * m_to_px
             self.RFS_px.append(rfs_px)      
 
+        print('Receptive fields sizes are computed.')
 
 
     def apply_filters_ganglion(self):
         """
-        Apply filters
+        Apply filters to simulate ganglion cells response to input image. 
         """
-        self.img_type = self.data.dtype
-        self.current = np.zeros_like(self.data,dtype=self.img_type)
-        self.final = np.zeros_like(self.data,dtype=self.img_type)
-        self.filtered = []
+        img_type = self.data.dtype
+        current = np.zeros_like(self.data, dtype = img_type)
+        final = np.zeros_like(self.data, dtype = img_type)
+        filtered = []
 
         print("applying filters...")
         # filter the image and store each filtered image in current
         for ii in np.arange(self.numZones):
-            sigma1=self.RFS_px[ii]/60    # """Je capte pas cquon doit mettre laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"""
-            sigma2=sigma1*1.6
-            self.filt = dog_filter(sigma1, sigma2)
-            self.current = cv2.filter2D(self.data,cv2.CV_32F,self.filt)
-            self.filtered.append(self.current)
+            sigma1 = self.RFS_px[ii]/60    # """Je capte pas cquon doit mettre laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"""
+            sigma2 = sigma1*1.6
+            filt = dog_filter(sigma1, sigma2)
+            current = cv2.filter2D(self.data, cv2.CV_32F, filt)
+            filtered.append(current)
+            print('sigma', ii, 'is :', sigma1)
 
         # store in final each filtered zone corresponding to each zone of the image in final
         for ii in np.arange(self.numZones):
-            self.final[self.Zones==ii] = self.filtered[ii][self.Zones==ii]   
+            final[self.Zones==ii] = filtered[ii][self.Zones==ii]   
             
-        outname = f'ganglion{self.basename}'
+        plt.imshow(final, 'gray')
+        outname = f'ganglion_{self.basename}'
         plt.savefig(outname)
-        plt.imshow(self.final, 'gray')
         plt.show()
 
     def apply_filters_V1(self):
-        # to do
-        ...
-
-    
-
+        ''' Apply gabor filters to the input image for different orientations (theta).
+            Produces an image output which consists in the combination of the different
+            gabor filters applied to the original image (depending on theta). '''
         
+        thetas = np.array([0, 30, 60, 90, 120, 150]) # orientations
+        fr = 0.2 # frequency
+
+        # Initialize an empty array to store the merged output
+        merged_output = np.zeros_like(self.data)
+
+        # Apply the Gabor filter for each orientation and add the filtered outputs
+        for theta in thetas:
+            filtered_real, filtered_im = filters.gabor(image = self.data, frequency = fr, theta = np.deg2rad(theta))
+            merged_output += filtered_real
+
+        # Normalize the merged output
+        merged_output /= len(thetas)
+
+        # Rescale the merged output to the range [0, 255] for visualization
+        merged_output = (merged_output - np.min(merged_output)) / (np.max(merged_output) - np.min(merged_output)) * 255
+        print('Gabor filters applied to {}'.format(self.fileName))
+        print('Output image created')
+        plt.imshow(merged_output, 'gray')
+        
+        outname = f'V1_{self.basename}'
+        plt.savefig(outname)
+        print('{} successfully wrote.'.format(outname))
+
+        plt.show()
+
+   
 def DoG(x, sig1, sig2):
     ''' 
     INPUTS:
@@ -209,7 +225,7 @@ def DoG(x, sig1, sig2):
         - (1/(sig2*np.sqrt(2*math.pi)))*np.exp(-(x**2/(2*sig2**2)))
     return output
 
-def dog_filter( sigma1, sigma2):
+def dog_filter(sigma1, sigma2):
     """
     INPUTS:
     sigma1: 
@@ -234,6 +250,7 @@ def main():
     retina.make_zones()
     retina.get_RFS()
     retina.apply_filters_ganglion()
+    retina.apply_filters_V1()
 
 main()
 

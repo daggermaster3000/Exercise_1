@@ -37,7 +37,7 @@ class Retina:
             print('Image converted to grayscale.')
         self.size = np.shape(self.data)
         self.size_xy = (self.size[1], self.size[0])
-        print(f'Image size in y,x coordinates: {self.size_xy} pixels.')
+        print(f'Image size in x,y coordinates: {self.size_xy} pixels.')
 
 
     def fix_point(self):
