@@ -222,7 +222,7 @@ def DoG(x, sig1, sig2):
     ----------
     Returns:  Returns the approximation of a response of a ganglion cell with a DoG filter
     '''
-    output = (1/(sig1*np.sqrt(2*math.pi)))*np.exp(-(x**2/(2*sig1**2))) - (1/(sig2*np.sqrt(2*math.pi)))*np.exp(-(x**2/(2*sig2**2)))
+    output = (1/(sig1*np.sqrt(2*np.pi)))*np.exp(-(x**2/(2*sig1**2))) - (1/(sig2*np.sqrt(2*np.pi)))*np.exp(-(x**2/(2*sig2**2)))
     return output
 
 def dog_filter(dim,sigma1, sigma2):
