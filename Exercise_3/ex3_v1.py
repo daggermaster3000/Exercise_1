@@ -17,6 +17,12 @@ NOTES/USAGE:
     - Run it from your IDE or alternatively from a command prompt by activating 
       your environment and running with: python ...
 
+      
+TODO
+- V1 cells simulation
+- All image formats supported
+- Propre and check for plagiarism in apply gaussians
+
 """
 
 # import libraries 
@@ -27,10 +33,7 @@ from scipy import ndimage
 import cv2
 import PySimpleGUI as sg
 from skimage import color,filters
-import sys
-import threading
-import time
-import itertools
+import os
 
 
 
@@ -48,6 +51,7 @@ class Retina:
             self.fileName = in_file
         self.raw_data = plt.imread(self.fileName)
         print(f'Image {self.fileName} successfully read.')
+        self.basename = os.path.basename(self.fileName)
     
 
     def adjust_image(self):
@@ -68,6 +72,7 @@ class Retina:
         plt.imshow(self.data, 'gray')
         selected_focus = plt.ginput(1)
         plt.close()
+
         # ginput returns a list with one selection element, take the first
         # element in this list
         self.focus = np.rint(selected_focus)[0].tolist()
@@ -93,7 +98,7 @@ class Retina:
             i.e. the maximal distance from the selected focus to the furthest corner'''
         # Set the number of zones
         self.numZones = 10
-
+        
         # The np.meshgrid function is used to create coordinate grids X and Y that span the 
         # dimensions of the size array.
         X, Y = np.meshgrid(np.arange(self.size[0]) + 1, np.arange(self.size[1]) + 1)
@@ -119,14 +124,15 @@ class Retina:
         plt.colorbar(ticks=np.arange(self.numZones))
         plt.show()
         """
+        
         print("zones done")
 
-   
-    def make_filters(self):
+    def get_RFS(self):
         ''' Converts pixel location to retinal location: each eccentricity is converted in distance 
             from the fovea. Then, receptive fields are calculated (in arcmin) and translated to the 
             display image (in pixels).'''
         # parameters
+        
         display_resolution = 1400 # px
         height = 0.3 # m
         display_distance = 0.6 # m
@@ -134,62 +140,89 @@ class Retina:
         px_to_m = height / display_resolution
         m_to_px = 1 / px_to_m
         self.filtered = []
-        
+        self.RFS_px = []
         self.RFS_arcmin = []
+        self.RFS_px = []
+
+        # Get the RFS for each zone
         for ii in range(self.numZones):
             zoneRad = (self.maxDistance / self.numZones * (ii + 0.5)) # eccentricity = average radius in a zone, in pixel
             eccentricities = zoneRad * px_to_m # in meters
-            angles_rad = np.arctan2(eccentricities, display_distance) # get the angle between the horizontal line crossing through the fovea to the pixel in radians
-            eccentricity = angles_rad * r_eye * 1000 # get the distance from fovea in millimeters
+            angles_rad = np.arctan2(eccentricities, display_distance) # in radians
+            eccentricity = angles_rad * r_eye * 1000 # distance from fovea in millimeters
             rfs_arcmin = 6 * eccentricity # receptive field of magnocellular cells in arcmin
             self.RFS_arcmin.append(rfs_arcmin) 
-
-        self.RFS_px = []
+        
+        # Convert to px
         for rf in self.RFS_arcmin:
             angle_deg = rf / 60 # convert arcmin to degrees
             rfs_m = np.abs(np.tan(angle_deg)*display_distance)
             rfs_px = rfs_m * m_to_px
-            self.RFS_px.append(rfs_px)
-        print("applying filter")
-        for zone in range(0,len(self.Zones)-1):
-            sig1 = self.RFS_px[zone]
-            sig2 = sig1*1.6
-            self.filter_matrix = DoG_kernel(self.RFS_px,sig1,sig2)
-            current = cv2.filter2D(self.data,cv2.CV_32F,self.filter_matrix)
-            self.filtered.append(current)
-        print("filter applied")
+            self.RFS_px.append(rfs_px)      
 
-        ## Paste image together
-        self.out = np.zeros_like(self.data)
-        for i in reversed(0,len(self.Zones)-1):
-            self.out[self.zones[i][0]] = self.filtered[i] \
-                                         [self.zones[i][0]]
-        print('DoG kernels were applied, output image was created.')
-        plt.imshow(self.out, 'gray')
-        outname = 'ganglion_{}'.format(self.imgtitle)
+
+
+    def apply_filters_ganglion(self):
+        """
+        Apply filters
+        """
+        self.img_type = self.data.dtype
+        self.current = np.zeros_like(self.data,dtype=self.img_type)
+        self.final = np.zeros_like(self.data,dtype=self.img_type)
+        self.filtered = []
+
+        print("applying filters...")
+        # filter the image and store each filtered image in current
+        for ii in np.arange(self.numZones):
+            sigma1=self.RFS_px[ii]/60    # """Je capte pas cquon doit mettre laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"""
+            sigma2=sigma1*1.6
+            self.filt = dog_filter(sigma1, sigma2)
+            self.current = cv2.filter2D(self.data,cv2.CV_32F,self.filt)
+            self.filtered.append(self.current)
+
+        # store in final each filtered zone corresponding to each zone of the image in final
+        for ii in np.arange(self.numZones):
+            self.final[self.Zones==ii] = self.filtered[ii][self.Zones==ii]   
+            
+        outname = f'ganglion{self.basename}'
         plt.savefig(outname)
-        print('Successfully wrote file {}'.format(outname))     
+        plt.imshow(self.final, 'gray')
+        plt.show()
+
+    def apply_filters_V1(self):
+        # to do
+        ...
+
+    
 
         
 def DoG(x, sig1, sig2):
     ''' 
-    Approximation of the response of ganglion cells with a Difference of Gaussians
-    PARAMETERS:
-    x: The radius of the kernel
+    INPUTS:
+    x:          The radius of the kernel
+    sigma1: 
+    sigma2: 
+    ----------
+    Returns:  Returns the approximation of a response of a ganglion cell with a DoG filter
     '''
     output = (1/(sig1*np.sqrt(2*math.pi)))*np.exp(-(x**2/(2*sig1**2))) \
         - (1/(sig2*np.sqrt(2*math.pi)))*np.exp(-(x**2/(2*sig2**2)))
     return output
 
-def DoG_kernel(rfs,sig1,sig2):
-    '''A function to create a DoG kernel'''
-    dim = 10*sig1
-    filterLength = np.arange(-int(2 * np.ceil(dim/2)),int(2 * np.ceil(dim/2)))
-
-    x,y = np.meshgrid(-(filterLength/2),(filterLength/2)) # create a grid of adequate dimensions
-    kernel = DoG(np.sqrt(np.square(x),np.square(y)),sig1,sig2)
-    
-    return kernel
+def dog_filter( sigma1, sigma2):
+    """
+    INPUTS:
+    sigma1: 
+    sigma2: 
+    ----------
+    Returns:  Returns a DoG filter matrix/kernel of given size and given sigmas.
+    """
+    dim = 10*sigma1
+    x = np.arange(-int(np.ceil(dim/2)),int(np.ceil(dim/2)))
+    X,Y = np.meshgrid(x,x)
+    m_filt = DoG(np.sqrt(np.square(X)+np.square(Y)),sigma1,sigma2)
+   
+    return m_filt/np.sum(np.sum(m_filt))
   
 
 def main():
@@ -199,8 +232,8 @@ def main():
     retina.fix_point()
     retina.furthest_corner()
     retina.make_zones()
-    
-    retina.make_filters()
+    retina.get_RFS()
+    retina.apply_filters_ganglion()
 
 main()
 
