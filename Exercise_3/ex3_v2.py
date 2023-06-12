@@ -165,11 +165,11 @@ class Retina:
         # filter the image and store each filtered image in current
         for ii in np.arange(self.numZones):
             
-            sigma1 = self.RFS_px[ii]/0.8    # sigma is side_length/8
+            sigma1 = self.RFS_px[ii]/8    # sigma is side_length/8
             print('sigma', ii, 'is :', sigma1)
             sigma2 = sigma1*1.6
             filt = dog_filter(self.RFS_arcmin[ii],sigma1, sigma2)
-            current = cv2.filter2D(self.data, cv2.CV_32F, filt)
+            current = filt(self.data)
             filtered.append(current)
            
 
@@ -234,13 +234,13 @@ def dog_filter(dim,sigma1, sigma2):
     ----------
     Returns:  Returns a DoG filter matrix/kernel of given size and given sigmas.
     """
-    dim = 8*sigma1
-    x = np.arange(-int(np.ceil(dim/2)),int(np.ceil(dim/2)))
-    X,Y = np.meshgrid(x,x)
-    m_filt = DoG(np.sqrt(np.square(X)+np.square(Y)),sigma1,sigma2)
-    print(m_filt/np.sum(np.sum(m_filt)))
-    return m_filt/np.sum(np.sum(m_filt))
-  
+    DoG = lambda k_s, s1, s2: (lambda img :  cv2.GaussianBlur(img,ksize=(k_s,k_s),sigmaX=s2,sigmaY=s2).astype(float) 
+                                           - cv2.GaussianBlur(img,ksize=(k_s,k_s),sigmaX=s1,sigmaY=s1).astype(float))
+    #Get nearest odd number for kernel size minimum of size 3
+    kernel_size = (2*np.floor(dim/2)+1).astype(int)
+    kernel_size = max(3,kernel_size)
+    print(DoG(kernel_size, sigma1, sigma2))
+    return DoG(kernel_size, sigma1, sigma2)
 
 def main():
     retina = Retina()
