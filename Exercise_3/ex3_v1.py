@@ -29,7 +29,6 @@ TODO
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-from scipy import ndimage  #??
 import cv2 
 import PySimpleGUI as sg
 from skimage import color,filters
