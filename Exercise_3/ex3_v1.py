@@ -51,14 +51,15 @@ class Retina:
         self.raw_data = plt.imread(self.fileName)
         print(f'Image {self.fileName} successfully read.')
         self.basename = os.path.basename(self.fileName)
-    
+                                    
 
     def adjust_image(self):
         ''' If RGB, converts image to grayscale. Then, gets the size of the image. '''
 
-        if len(self.raw_data.shape) == 3:  # if RGB, convert to greyscale
-            self.data = color.rgb2gray(self.raw_data)
+        if len(self.raw_data.shape) > 2:  # if RGB, convert to greyscale
+            self.data = color.rgb2gray(self.raw_data).astype(np.float32)
             print('Image converted to grayscale.')
+            print(self.data.dtype)
         else:
             self.data = self.raw_data
         self.size = np.shape(self.data)
