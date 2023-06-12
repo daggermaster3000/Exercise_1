@@ -145,7 +145,7 @@ class Retina:
         # Convert to px
         for rf in self.RFS_arcmin:
             angle_deg = rf / 60 # convert arcmin to degrees
-            rfs_m = np.abs(np.tan(angle_deg)*display_distance)
+            rfs_m = np.abs(np.tan(angle_deg*np.pi/180)*display_distance)
             rfs_px = rfs_m * m_to_px
             self.RFS_px.append(rfs_px)      
 
@@ -160,11 +160,13 @@ class Retina:
         current = np.zeros_like(self.data, dtype = img_type)
         final = np.zeros_like(self.data, dtype = img_type)
         filtered = []
-
+        print(self.RFS_arcmin)
         print("applying filters...")
         # filter the image and store each filtered image in current
         for ii in np.arange(self.numZones):
-            sigma1 = self.RFS_px[ii]/60    # """Je capte pas cquon doit mettre laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"""
+            
+            sigma1 = self.RFS_px[ii]/8    # 60 is the side length
+            print('sigma', ii, 'is :', sigma1)
             sigma2 = sigma1*1.6
             filt = dog_filter(sigma1, sigma2)
             current = cv2.filter2D(self.data, cv2.CV_32F, filt)
