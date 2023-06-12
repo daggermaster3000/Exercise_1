@@ -8,7 +8,11 @@ This file contains code for simulating a visual prosthesis
 
 OUTPUTS: 
       FILES                     DESCRIPTION                                         VALUES
+        _ganglion.png           An image representing the 
+                                simulation of a ganglion cell
 
+        _V1.png                 An image representing the 
+                                simulation of a cortical V1 cell
 
 NAMING CONVENTIONS: 
 
@@ -23,7 +27,6 @@ NOTES/USAGE:
 # import libraries 
 import matplotlib.pyplot as plt
 import numpy as np
-import math
 import cv2 
 import PySimpleGUI as sg
 from skimage import color,filters
@@ -52,7 +55,7 @@ class Retina:
         if len(self.raw_data.shape) > 2:  # if RGB, convert to greyscale
             self.data = color.rgb2gray(self.raw_data).astype(np.float32)    # float32 in case image is not png
             print('Image converted to grayscale.')
-            print(self.data.dtype)
+            
         else:
             self.data = self.raw_data
         self.size = np.shape(self.data)
@@ -153,14 +156,13 @@ class Retina:
         current = np.zeros_like(self.data, dtype = img_type)
         final = np.zeros_like(self.data, dtype = img_type)
         filtered = []
-        print(self.RFS_arcmin)
+        
         print("applying filters...")
 
         # filter the image and store each filtered image in current
         for ii in np.arange(self.numZones):
             
             sigma1 = self.RFS_px[ii]/self.height    # sigma is side_length/8
-            print('sigma', ii, 'is :', sigma1)
             sigma2 = sigma1*1.6
             filt = dog_filter(self.RFS_arcmin[ii],sigma1, sigma2)
             current = cv2.filter2D(self.data, cv2.CV_32F, filt)
@@ -173,8 +175,9 @@ class Retina:
 
         # show and plot image    
         plt.imshow(final, 'gray')
-        outname = f'ganglion_{self.basename}.png'
+        outname = f'ganglion_{self.basename}'
         plt.savefig(outname)
+        print(f"{outname} successfully saved")
         plt.show()
 
     def apply_filters_V1(self):
@@ -202,9 +205,9 @@ class Retina:
         print('Output image created')
         plt.imshow(merged_output, 'gray')
         
-        outname = f'{self.basename}_V1.png'
+        outname = f'V1_{self.basename}'
         plt.savefig(outname)
-        print('{} successfully written.'.format(outname))
+        print('{} successfully saved.'.format(outname))
 
         plt.show()
 
@@ -248,5 +251,6 @@ def main():
     retina.apply_filters_ganglion()
     retina.apply_filters_V1()
 
-main()
+if __name__ == '__main__':
+    main()
 
