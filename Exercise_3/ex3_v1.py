@@ -165,13 +165,13 @@ class Retina:
         # filter the image and store each filtered image in current
         for ii in np.arange(self.numZones):
             
-            sigma1 = self.RFS_px[ii]/8    # 60 is the side length
+            sigma1 = self.RFS_px[ii]/8    # sigma is side_length/8
             print('sigma', ii, 'is :', sigma1)
             sigma2 = sigma1*1.6
-            filt = dog_filter(sigma1, sigma2)
+            filt = dog_filter(self.RFS_arcmin[ii],sigma1, sigma2)
             current = cv2.filter2D(self.data, cv2.CV_32F, filt)
             filtered.append(current)
-            print('sigma', ii, 'is :', sigma1)
+           
 
         # store in final each filtered zone corresponding to each zone of the image in final
         for ii in np.arange(self.numZones):
@@ -223,11 +223,10 @@ def DoG(x, sig1, sig2):
     ----------
     Returns:  Returns the approximation of a response of a ganglion cell with a DoG filter
     '''
-    output = (1/(sig1*np.sqrt(2*math.pi)))*np.exp(-(x**2/(2*sig1**2))) \
-        - (1/(sig2*np.sqrt(2*math.pi)))*np.exp(-(x**2/(2*sig2**2)))
+    output = (1/(sig1*np.sqrt(2*math.pi)))*np.exp(-(x**2/(2*sig1**2))) - (1/(sig2*np.sqrt(2*math.pi)))*np.exp(-(x**2/(2*sig2**2)))
     return output
 
-def dog_filter(sigma1, sigma2):
+def dog_filter(dim,sigma1, sigma2):
     """
     INPUTS:
     sigma1: 
@@ -235,7 +234,8 @@ def dog_filter(sigma1, sigma2):
     ----------
     Returns:  Returns a DoG filter matrix/kernel of given size and given sigmas.
     """
-    dim = 10*sigma1
+    dim=np.round(dim)
+    dim=max(3,dim)
     x = np.arange(-int(np.ceil(dim/2)),int(np.ceil(dim/2)))
     X,Y = np.meshgrid(x,x)
     m_filt = DoG(np.sqrt(np.square(X)+np.square(Y)),sigma1,sigma2)
